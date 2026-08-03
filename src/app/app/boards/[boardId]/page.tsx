@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { LayoutIcon } from "lucide-react";
+import { ChevronRightIcon } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/auth";
 import { BoardView } from "./board-view";
@@ -69,42 +69,39 @@ export default async function BoardPage({
   const gradient = gradientFor(board.name);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5 dark:bg-zinc-900 dark:ring-white/10">
-        <div className={`h-2 w-full bg-gradient-to-r ${gradient}`} />
-        <div className="flex items-center justify-between px-5 py-4">
-          <div className="flex items-center gap-3">
-            <div
-              className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${gradient} text-white shadow-sm`}
-            >
-              <LayoutIcon className="h-5 w-5" />
-            </div>
-            <div className="flex flex-col leading-tight">
-              <Link
-                href="/app"
-                className="text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
-              >
-                Boards
-              </Link>
-              <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                {board.name}
-              </h1>
-            </div>
-          </div>
-          <div className="hidden gap-4 text-xs text-zinc-500 sm:flex">
-            <span>
-              <strong className="text-zinc-900 dark:text-zinc-100">
-                {board.lists.length}
-              </strong>{" "}
-              lists
-            </span>
-            <span>
-              <strong className="text-zinc-900 dark:text-zinc-100">{totalCards}</strong>{" "}
-              cards
-            </span>
-          </div>
+    <div className="flex flex-col gap-5">
+      <nav className="flex items-center gap-1 text-xs text-zinc-500">
+        <Link href="/app" className="hover:text-zinc-900 dark:hover:text-zinc-100">
+          Boards
+        </Link>
+        <ChevronRightIcon className="h-3 w-3" />
+        <span className="text-zinc-700 dark:text-zinc-300">{board.name}</span>
+      </nav>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span
+            aria-hidden
+            className={`h-8 w-1.5 rounded-full bg-gradient-to-b ${gradient}`}
+          />
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+            {board.name}
+          </h1>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-zinc-500">
+          <span className="rounded-full bg-white px-2.5 py-1 shadow-sm ring-1 ring-black/5 dark:bg-zinc-900 dark:ring-white/10">
+            <strong className="text-zinc-900 dark:text-zinc-100">
+              {board.lists.length}
+            </strong>{" "}
+            {board.lists.length === 1 ? "list" : "lists"}
+          </span>
+          <span className="rounded-full bg-white px-2.5 py-1 shadow-sm ring-1 ring-black/5 dark:bg-zinc-900 dark:ring-white/10">
+            <strong className="text-zinc-900 dark:text-zinc-100">{totalCards}</strong>{" "}
+            {totalCards === 1 ? "card" : "cards"}
+          </span>
         </div>
       </div>
+
       <BoardView boardId={board.id} initialLists={initialLists} />
     </div>
   );

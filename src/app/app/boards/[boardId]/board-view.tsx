@@ -138,7 +138,7 @@ export function BoardView({
 
   return (
     <>
-      <div className="scroll-slim -mx-6 overflow-x-auto px-6 pb-3">
+      <div className="scroll-hide -mx-6 overflow-x-auto px-6 pb-3">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}

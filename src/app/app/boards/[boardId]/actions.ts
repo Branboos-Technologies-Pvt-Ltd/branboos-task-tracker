@@ -95,32 +95,22 @@ export async function moveCard(
   revalidatePath(`/app/boards/${boardId}`);
 }
 
-const dateOrNull = z
-  .string()
-  .optional()
-  .transform((v) => (v && v.length > 0 ? new Date(v) : null))
-  .refine((d) => d === null || !isNaN(d.getTime()), "Invalid date");
+const PRIORITY_VALUES = ["low", "medium", "high", "urgent"] as const;
 
-const updateCardSchema = z.object({
-  title: z.string().trim().min(1).max(200),
-  description: z
-    .string()
-    .max(4000)
-    .optional()
-    .transform((v) => (v && v.length > 0 ? v : null)),
-  component: z
-    .string()
-    .trim()
-    .max(60)
-    .optional()
-    .transform((v) => (v && v.length > 0 ? v : null)),
-  priority: z
-    .enum(["", "low", "medium", "high", "urgent"])
-    .optional()
-    .transform((v) => (v && v.length > 0 ? (v as CardPriority) : null)),
-  startDate: dateOrNull,
-  dueDate: dateOrNull,
-});
+function readString(formData: FormData, key: string): string | null {
+  const v = formData.get(key);
+  if (typeof v !== "string") return null;
+  const trimmed = v.trim();
+  return trimmed.length === 0 ? null : trimmed;
+}
+
+function readDate(formData: FormData, key: string): Date | null | { error: string } {
+  const v = readString(formData, key);
+  if (v === null) return null;
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return { error: `Invalid ${key}` };
+  return d;
+}
 
 export async function updateCard(
   boardId: string,
@@ -129,22 +119,43 @@ export async function updateCard(
 ) {
   await assertBoardAccess(boardId);
 
-  const parsed = updateCardSchema.safeParse({
-    title: formData.get("title"),
-    description: formData.get("description"),
-    component: formData.get("component"),
-    priority: formData.get("priority"),
-    startDate: formData.get("startDate"),
-    dueDate: formData.get("dueDate"),
-  });
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0].message };
-  }
+  const title = readString(formData, "title");
+  if (!title) return { error: "Title is required" };
+  if (title.length > 200) return { error: "Title is too long" };
 
-  await prisma.card.update({
-    where: { id: cardId },
-    data: parsed.data,
-  });
+  const description = readString(formData, "description");
+  const component = readString(formData, "component");
+
+  const priorityRaw = readString(formData, "priority");
+  const priority =
+    priorityRaw && (PRIORITY_VALUES as readonly string[]).includes(priorityRaw)
+      ? (priorityRaw as CardPriority)
+      : null;
+
+  const startDate = readDate(formData, "startDate");
+  if (startDate && "error" in startDate) return startDate;
+
+  const dueDate = readDate(formData, "dueDate");
+  if (dueDate && "error" in dueDate) return dueDate;
+
+  try {
+    await prisma.card.update({
+      where: { id: cardId },
+      data: {
+        title,
+        description,
+        component,
+        priority,
+        startDate: startDate as Date | null,
+        dueDate: dueDate as Date | null,
+      },
+    });
+  } catch (err) {
+    console.error("updateCard failed:", err);
+    return {
+      error: err instanceof Error ? err.message : "Failed to save changes",
+    };
+  }
 
   revalidatePath(`/app/boards/${boardId}`);
 }

@@ -145,7 +145,7 @@ export function BoardView({
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex flex-wrap items-start gap-4">
+          <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {lists.map((list) => (
               <ListColumn
                 key={list.id}
@@ -198,7 +198,7 @@ function ListColumn({
       <div
         ref={setNodeRef}
         data-list-id={list.id}
-        className={`flex w-72 shrink-0 flex-col overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/[0.04] transition-colors dark:bg-zinc-900 dark:ring-white/[0.06] ${
+        className={`flex w-full flex-col overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/[0.04] transition-colors dark:bg-zinc-900 dark:ring-white/[0.06] ${
           isOver ? theme.droppableBg : ""
         }`}
       >

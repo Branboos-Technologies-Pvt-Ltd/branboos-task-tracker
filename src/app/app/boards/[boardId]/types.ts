@@ -65,3 +65,79 @@ export function componentColor(name: string): string {
   }
   return COMPONENT_PALETTE[Math.abs(hash) % COMPONENT_PALETTE.length];
 }
+
+// Column accent themes. Well-known names (Todo, Done, etc.) get semantic colours;
+// custom column names fall back to a deterministic hash over the palette.
+export type ColumnTheme = {
+  accentBar: string;
+  headerDot: string;
+  countBadge: string;
+  droppableBg: string;
+};
+
+const COLUMN_PALETTE: ColumnTheme[] = [
+  {
+    accentBar: "bg-gradient-to-r from-indigo-400 to-violet-500",
+    headerDot: "bg-indigo-500",
+    countBadge: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300",
+    droppableBg: "bg-indigo-100/60 dark:bg-indigo-900/30",
+  },
+  {
+    accentBar: "bg-gradient-to-r from-amber-400 to-orange-500",
+    headerDot: "bg-amber-500",
+    countBadge: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
+    droppableBg: "bg-amber-100/60 dark:bg-amber-900/30",
+  },
+  {
+    accentBar: "bg-gradient-to-r from-emerald-400 to-teal-500",
+    headerDot: "bg-emerald-500",
+    countBadge: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+    droppableBg: "bg-emerald-100/60 dark:bg-emerald-900/30",
+  },
+  {
+    accentBar: "bg-gradient-to-r from-sky-400 to-blue-500",
+    headerDot: "bg-sky-500",
+    countBadge: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300",
+    droppableBg: "bg-sky-100/60 dark:bg-sky-900/30",
+  },
+  {
+    accentBar: "bg-gradient-to-r from-pink-400 to-rose-500",
+    headerDot: "bg-pink-500",
+    countBadge: "bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300",
+    droppableBg: "bg-pink-100/60 dark:bg-pink-900/30",
+  },
+  {
+    accentBar: "bg-gradient-to-r from-fuchsia-400 to-purple-500",
+    headerDot: "bg-fuchsia-500",
+    countBadge: "bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/40 dark:text-fuchsia-300",
+    droppableBg: "bg-fuchsia-100/60 dark:bg-fuchsia-900/30",
+  },
+];
+
+const NAMED_COLUMNS: Record<string, number> = {
+  todo: 0,
+  backlog: 0,
+  "to do": 0,
+  "in progress": 1,
+  doing: 1,
+  wip: 1,
+  review: 3,
+  "in review": 3,
+  qa: 3,
+  testing: 3,
+  done: 2,
+  complete: 2,
+  completed: 2,
+  shipped: 2,
+  deployed: 5,
+  blocked: 4,
+  cancelled: 4,
+};
+
+export function columnTheme(name: string): ColumnTheme {
+  const key = name.trim().toLowerCase();
+  if (key in NAMED_COLUMNS) return COLUMN_PALETTE[NAMED_COLUMNS[key]];
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) | 0;
+  return COLUMN_PALETTE[Math.abs(hash) % COLUMN_PALETTE.length];
+}

@@ -27,6 +27,7 @@ import { AddListForm } from "./add-list-form";
 import { CardDialog } from "./card-dialog";
 import {
   PRIORITY_STYLES,
+  columnTheme,
   componentColor,
   type CardData,
   type ListData,
@@ -137,7 +138,7 @@ export function BoardView({
 
   return (
     <>
-      <div className="-mx-6 overflow-x-auto px-6 pb-6">
+      <div className="scroll-slim -mx-6 overflow-x-auto px-6 pb-3">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}
@@ -190,34 +191,48 @@ function ListColumn({
 }) {
   const cardIds = list.cards.map((c) => c.id);
   const { setNodeRef, isOver } = useDroppable({ id: list.id });
+  const theme = columnTheme(list.name);
 
   return (
     <SortableContext id={list.id} items={cardIds} strategy={verticalListSortingStrategy}>
       <div
         ref={setNodeRef}
         data-list-id={list.id}
-        className={`flex w-72 shrink-0 flex-col gap-2 rounded-xl p-3 shadow-sm ring-1 ring-black/[0.03] transition-colors dark:ring-white/[0.03] ${
-          isOver ? "bg-zinc-200/80 dark:bg-zinc-700/80" : "bg-zinc-100 dark:bg-zinc-800/80"
+        className={`flex w-72 shrink-0 flex-col overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/[0.04] transition-colors dark:bg-zinc-900 dark:ring-white/[0.06] ${
+          isOver ? theme.droppableBg : ""
         }`}
       >
-        <div className="flex items-center justify-between px-1.5">
-          <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-            {list.name}
-          </h3>
-          <span className="rounded-full bg-white px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
-            {list.cards.length}
-          </span>
+        <div className={`h-1 w-full ${theme.accentBar}`} />
+        <div className="flex flex-col gap-2 p-3">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <span className={`h-2 w-2 rounded-full ${theme.headerDot}`} />
+              <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                {list.name}
+              </h3>
+            </div>
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-semibold ${theme.countBadge}`}
+            >
+              {list.cards.length}
+            </span>
+          </div>
+          <div className="flex min-h-4 flex-col gap-2">
+            {list.cards.map((card) => (
+              <SortableCard
+                key={card.id}
+                card={card}
+                onClick={() => onCardClick(card.id)}
+              />
+            ))}
+            {list.cards.length === 0 && (
+              <div className="rounded-md border border-dashed border-zinc-200 py-4 text-center text-xs text-zinc-400 dark:border-zinc-700">
+                Drop cards here
+              </div>
+            )}
+          </div>
+          <AddCardForm boardId={boardId} listId={list.id} />
         </div>
-        <div className="flex min-h-4 flex-col gap-2">
-          {list.cards.map((card) => (
-            <SortableCard
-              key={card.id}
-              card={card}
-              onClick={() => onCardClick(card.id)}
-            />
-          ))}
-        </div>
-        <AddCardForm boardId={boardId} listId={list.id} />
       </div>
     </SortableContext>
   );
@@ -245,7 +260,7 @@ function SortableCard({ card, onClick }: { card: CardData; onClick: () => void }
       }}
       role="button"
       tabIndex={0}
-      className="cursor-grab select-none rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 active:cursor-grabbing"
+      className="cursor-grab select-none rounded-md transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 hover:-translate-y-0.5 active:cursor-grabbing"
     >
       <CardBody card={card} />
     </div>

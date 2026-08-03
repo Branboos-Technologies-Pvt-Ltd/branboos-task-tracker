@@ -1,48 +1,70 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { signOut } from "@/app/login/actions";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { formatDistanceToNow } from "date-fns";
+import { prisma } from "@/lib/prisma";
+import { requireProfile } from "@/lib/auth";
+import { NewBoardDialog } from "./new-board-dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function AppHome() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { workspace } = await requireProfile();
 
-  if (!user) redirect("/login");
+  const boards = await prisma.board.findMany({
+    where: { workspaceId: workspace.id, archivedAt: null },
+    orderBy: { updatedAt: "desc" },
+    include: {
+      _count: { select: { lists: true } },
+      lists: {
+        select: { _count: { select: { cards: true } } },
+      },
+    },
+  });
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
-      <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex flex-col">
-            <p className="text-xs font-medium tracking-wide text-zinc-500 uppercase">
-              Branboos
-            </p>
-            <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-              Task Tracker
-            </h1>
-          </div>
-          <form action={signOut}>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-zinc-600 dark:text-zinc-400">{user.email}</span>
-              <Button type="submit" variant="outline" size="sm">
-                Sign out
-              </Button>
-            </div>
-          </form>
-        </div>
-      </header>
-      <main className="mx-auto max-w-6xl px-6 py-12">
-        <div className="rounded-lg border border-zinc-200 bg-white p-8 dark:border-zinc-800 dark:bg-zinc-900">
-          <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-            You&rsquo;re signed in
-          </h2>
-          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-            Boards and cards are coming next. Your Branboos workspace is ready.
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
+            Boards
+          </h1>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            {boards.length === 0
+              ? "No boards yet — create your first one to get started."
+              : `${boards.length} board${boards.length === 1 ? "" : "s"} in ${workspace.name}`}
           </p>
         </div>
-      </main>
+        <NewBoardDialog />
+      </div>
+
+      {boards.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {boards.map((board) => {
+            const totalCards = board.lists.reduce(
+              (sum, list) => sum + list._count.cards,
+              0,
+            );
+            return (
+              <Link key={board.id} href={`/app/boards/${board.id}`}>
+                <Card className="transition-colors hover:border-zinc-400 dark:hover:border-zinc-600">
+                  <CardHeader>
+                    <CardTitle>{board.name}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex justify-between text-xs text-zinc-500">
+                      <span>
+                        {board._count.lists} list{board._count.lists === 1 ? "" : "s"} ·{" "}
+                        {totalCards} card{totalCards === 1 ? "" : "s"}
+                      </span>
+                      <span>
+                        updated {formatDistanceToNow(board.updatedAt, { addSuffix: true })}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

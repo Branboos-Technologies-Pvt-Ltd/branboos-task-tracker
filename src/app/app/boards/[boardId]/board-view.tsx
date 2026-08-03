@@ -138,14 +138,14 @@ export function BoardView({
 
   return (
     <>
-      <div className="scroll-hide -mx-6 overflow-x-auto px-6 pb-3">
+      <div>
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex items-start gap-4">
+          <div className="flex flex-wrap items-start gap-4">
             {lists.map((list) => (
               <ListColumn
                 key={list.id}

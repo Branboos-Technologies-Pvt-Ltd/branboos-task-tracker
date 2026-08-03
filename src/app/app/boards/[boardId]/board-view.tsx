@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { differenceInCalendarDays, format, isPast, isToday } from "date-fns";
 import {
   DndContext,
   DragOverlay,
@@ -19,12 +20,17 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { CalendarIcon } from "lucide-react";
 import { moveCard } from "./actions";
 import { AddCardForm } from "./add-card-form";
 import { AddListForm } from "./add-list-form";
-
-type CardData = { id: string; title: string; position: number; listId: string };
-type ListData = { id: string; name: string; position: number; cards: CardData[] };
+import { CardDialog } from "./card-dialog";
+import {
+  PRIORITY_STYLES,
+  componentColor,
+  type CardData,
+  type ListData,
+} from "./types";
 
 export function BoardView({
   boardId,
@@ -35,6 +41,7 @@ export function BoardView({
 }) {
   const [lists, setLists] = useState<ListData[]>(initialLists);
   const [activeCard, setActiveCard] = useState<CardData | null>(null);
+  const [openCardId, setOpenCardId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
   useEffect(() => {
@@ -70,7 +77,6 @@ export function BoardView({
     const source = findCard(activeId);
     if (!source) return;
 
-    // Resolve destination: `over` can be another card id OR a list id (empty column).
     const overCard = findCard(overId);
     const destListId = overCard?.listId ?? overId;
     const destList = lists.find((l) => l.id === destListId);
@@ -124,33 +130,64 @@ export function BoardView({
     });
   }
 
+  const openCard =
+    openCardId != null
+      ? lists.flatMap((l) => l.cards).find((c) => c.id === openCardId) ?? null
+      : null;
+
   return (
-    <div className="-mx-6 overflow-x-auto px-6 pb-4">
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="flex items-start gap-3">
-          {lists.map((list) => (
-            <ListColumn key={list.id} boardId={boardId} list={list} />
-          ))}
-          <AddListForm boardId={boardId} />
-        </div>
-        <DragOverlay>
-          {activeCard && (
-            <div className="rotate-2 rounded-md bg-white p-2.5 text-sm text-zinc-900 shadow-lg ring-1 ring-black/10 dark:bg-zinc-900 dark:text-zinc-100 dark:ring-white/20">
-              {activeCard.title}
-            </div>
-          )}
-        </DragOverlay>
-      </DndContext>
-    </div>
+    <>
+      <div className="-mx-6 overflow-x-auto px-6 pb-6">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="flex items-start gap-4">
+            {lists.map((list) => (
+              <ListColumn
+                key={list.id}
+                boardId={boardId}
+                list={list}
+                onCardClick={setOpenCardId}
+              />
+            ))}
+            <AddListForm boardId={boardId} />
+          </div>
+          <DragOverlay>
+            {activeCard && (
+              <div className="w-72 rotate-2">
+                <CardBody card={activeCard} elevated />
+              </div>
+            )}
+          </DragOverlay>
+        </DndContext>
+      </div>
+
+      {openCard && (
+        <CardDialog
+          boardId={boardId}
+          card={openCard}
+          open={true}
+          onOpenChange={(open) => {
+            if (!open) setOpenCardId(null);
+          }}
+        />
+      )}
+    </>
   );
 }
 
-function ListColumn({ boardId, list }: { boardId: string; list: ListData }) {
+function ListColumn({
+  boardId,
+  list,
+  onCardClick,
+}: {
+  boardId: string;
+  list: ListData;
+  onCardClick: (id: string) => void;
+}) {
   const cardIds = list.cards.map((c) => c.id);
   const { setNodeRef, isOver } = useDroppable({ id: list.id });
 
@@ -159,21 +196,25 @@ function ListColumn({ boardId, list }: { boardId: string; list: ListData }) {
       <div
         ref={setNodeRef}
         data-list-id={list.id}
-        className={`flex w-72 shrink-0 flex-col gap-2 rounded-lg p-3 transition-colors ${
-          isOver
-            ? "bg-zinc-200 dark:bg-zinc-700"
-            : "bg-zinc-100 dark:bg-zinc-800"
+        className={`flex w-72 shrink-0 flex-col gap-2 rounded-xl p-3 shadow-sm ring-1 ring-black/[0.03] transition-colors dark:ring-white/[0.03] ${
+          isOver ? "bg-zinc-200/80 dark:bg-zinc-700/80" : "bg-zinc-100 dark:bg-zinc-800/80"
         }`}
       >
-        <div className="flex items-center justify-between px-1">
-          <h3 className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+        <div className="flex items-center justify-between px-1.5">
+          <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
             {list.name}
           </h3>
-          <span className="text-xs text-zinc-500">{list.cards.length}</span>
+          <span className="rounded-full bg-white px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
+            {list.cards.length}
+          </span>
         </div>
         <div className="flex min-h-4 flex-col gap-2">
           {list.cards.map((card) => (
-            <SortableCard key={card.id} card={card} />
+            <SortableCard
+              key={card.id}
+              card={card}
+              onClick={() => onCardClick(card.id)}
+            />
           ))}
         </div>
         <AddCardForm boardId={boardId} listId={list.id} />
@@ -182,7 +223,7 @@ function ListColumn({ boardId, list }: { boardId: string; list: ListData }) {
   );
 }
 
-function SortableCard({ card }: { card: CardData }) {
+function SortableCard({ card, onClick }: { card: CardData; onClick: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: card.id });
 
@@ -198,15 +239,79 @@ function SortableCard({ card }: { card: CardData }) {
       style={style}
       {...attributes}
       {...listeners}
-      className="cursor-grab rounded-md bg-white p-2.5 text-sm text-zinc-900 shadow-sm ring-1 ring-black/5 select-none active:cursor-grabbing dark:bg-zinc-900 dark:text-zinc-100 dark:ring-white/10"
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") onClick();
+      }}
+      role="button"
+      tabIndex={0}
+      className="cursor-grab select-none rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 active:cursor-grabbing"
     >
-      {card.title}
+      <CardBody card={card} />
     </div>
   );
 }
 
-// Fractional positioning: dropped cards land between their neighbours so drag-drop
-// reordering never has to renumber siblings. New cards get position = last + 1000.
+function CardBody({ card, elevated = false }: { card: CardData; elevated?: boolean }) {
+  const priorityStyle = card.priority ? PRIORITY_STYLES[card.priority] : null;
+  const due = card.dueDate;
+  const overdue = due && isPast(due) && !isToday(due);
+  const dueSoon = due && !overdue && differenceInCalendarDays(due, new Date()) <= 2;
+
+  return (
+    <div
+      className={`overflow-hidden rounded-md bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100 ${
+        elevated
+          ? "shadow-lg ring-1 ring-black/10 dark:ring-white/20"
+          : "shadow-sm ring-1 ring-black/5 hover:ring-black/10 dark:ring-white/10 dark:hover:ring-white/20"
+      }`}
+    >
+      <div className="flex">
+        {priorityStyle && <div className={`w-1 shrink-0 ${priorityStyle.bar}`} />}
+        <div className="flex flex-1 flex-col gap-2 p-2.5">
+          <p className="text-sm leading-snug">{card.title}</p>
+
+          {(card.component || card.priority) && (
+            <div className="flex flex-wrap gap-1">
+              {card.component && (
+                <span
+                  className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${componentColor(
+                    card.component,
+                  )}`}
+                >
+                  {card.component}
+                </span>
+              )}
+              {priorityStyle && (
+                <span
+                  className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${priorityStyle.tag}`}
+                >
+                  {priorityStyle.label}
+                </span>
+              )}
+            </div>
+          )}
+
+          {due && (
+            <div
+              className={`inline-flex w-fit items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                overdue
+                  ? "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
+                  : dueSoon
+                  ? "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300"
+                  : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+              }`}
+            >
+              <CalendarIcon className="h-3 w-3" />
+              {format(due, "MMM d")}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function calcPosition(cards: CardData[], insertAt: number): number {
   const before = cards[insertAt - 1];
   const after = cards[insertAt + 1];

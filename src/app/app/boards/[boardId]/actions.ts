@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { CardPriority } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/auth";
 
@@ -37,7 +38,7 @@ export async function createList(boardId: string, formData: FormData) {
   revalidatePath(`/app/boards/${boardId}`);
 }
 
-const cardSchema = z.object({
+const cardCreateSchema = z.object({
   title: z.string().trim().min(1).max(200),
 });
 
@@ -47,7 +48,7 @@ export async function createCard(
   formData: FormData,
 ) {
   const { profileId } = await assertBoardAccess(boardId);
-  const parsed = cardSchema.safeParse({ title: formData.get("title") });
+  const parsed = cardCreateSchema.safeParse({ title: formData.get("title") });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const last = await prisma.card.findFirst({
@@ -89,6 +90,60 @@ export async function moveCard(
       listId: parsed.data.targetListId,
       position: parsed.data.targetPosition,
     },
+  });
+
+  revalidatePath(`/app/boards/${boardId}`);
+}
+
+const dateOrNull = z
+  .string()
+  .optional()
+  .transform((v) => (v && v.length > 0 ? new Date(v) : null))
+  .refine((d) => d === null || !isNaN(d.getTime()), "Invalid date");
+
+const updateCardSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+  description: z
+    .string()
+    .max(4000)
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null)),
+  component: z
+    .string()
+    .trim()
+    .max(60)
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null)),
+  priority: z
+    .enum(["", "low", "medium", "high", "urgent"])
+    .optional()
+    .transform((v) => (v && v.length > 0 ? (v as CardPriority) : null)),
+  startDate: dateOrNull,
+  dueDate: dateOrNull,
+});
+
+export async function updateCard(
+  boardId: string,
+  cardId: string,
+  formData: FormData,
+) {
+  await assertBoardAccess(boardId);
+
+  const parsed = updateCardSchema.safeParse({
+    title: formData.get("title"),
+    description: formData.get("description"),
+    component: formData.get("component"),
+    priority: formData.get("priority"),
+    startDate: formData.get("startDate"),
+    dueDate: formData.get("dueDate"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message };
+  }
+
+  await prisma.card.update({
+    where: { id: cardId },
+    data: parsed.data,
   });
 
   revalidatePath(`/app/boards/${boardId}`);

@@ -1,5 +1,12 @@
 // Branboos Task Tracker — data model
 // Docs: https://pris.ly/d/prisma-schema
+//
+// NOTE: We deliberately do NOT declare Supabase's `auth` schema here.
+// The profiles.id → auth.users.id foreign key is created via
+// prisma/sql/001_auth_bridge.sql and lives outside Prisma's world.
+// Schema changes are applied by hand-written SQL files in prisma/sql
+// rather than `prisma migrate dev`, because Prisma would otherwise
+// see the entire auth schema as drift and want to reset the DB.
 
 generator client {
   provider = "prisma-client"
@@ -11,8 +18,7 @@ datasource db {
 }
 
 // Mirror of Supabase auth.users. The `id` matches auth.users.id (UUID).
-// We do NOT let Prisma create/modify auth.users — Supabase owns it.
-// A row here is created via a trigger when a user signs up (see migration SQL).
+// A row here is created via a trigger when a user signs up (see auth-bridge SQL).
 model Profile {
   id        String   @id @db.Uuid
   email     String   @unique
@@ -65,15 +71,15 @@ model WorkspaceMember {
 }
 
 model Board {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  workspaceId String   @map("workspace_id") @db.Uuid
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
   name        String
   description String?
   color       String?
-  createdById String   @map("created_by") @db.Uuid
+  createdById String    @map("created_by") @db.Uuid
   archivedAt  DateTime? @map("archived_at")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy Profile   @relation("BoardCreatedBy", fields: [createdById], references: [id])
@@ -112,8 +118,10 @@ model Card {
   listId      String        @map("list_id") @db.Uuid
   title       String
   description String?
+  component   String?
   position    Float
   priority    CardPriority?
+  startDate   DateTime?     @map("start_date")
   dueDate     DateTime?     @map("due_date")
   assigneeId  String?       @map("assignee_id") @db.Uuid
   createdById String        @map("created_by") @db.Uuid

@@ -1,0 +1,147 @@
+// Branboos Task Tracker — data model
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Mirror of Supabase auth.users. The `id` matches auth.users.id (UUID).
+// We do NOT let Prisma create/modify auth.users — Supabase owns it.
+// A row here is created via a trigger when a user signs up (see migration SQL).
+model Profile {
+  id        String   @id @db.Uuid
+  email     String   @unique
+  fullName  String?  @map("full_name")
+  avatarUrl String?  @map("avatar_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  memberships   WorkspaceMember[]
+  createdBoards Board[]           @relation("BoardCreatedBy")
+  assignedCards Card[]            @relation("CardAssignee")
+  authoredCards Card[]            @relation("CardCreatedBy")
+  comments      Comment[]
+
+  @@map("profiles")
+}
+
+enum WorkspaceRole {
+  owner
+  admin
+  member
+
+  @@map("workspace_role")
+}
+
+model Workspace {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  members WorkspaceMember[]
+  boards  Board[]
+
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  workspaceId String        @map("workspace_id") @db.Uuid
+  profileId   String        @map("profile_id") @db.Uuid
+  role        WorkspaceRole @default(member)
+  joinedAt    DateTime      @default(now()) @map("joined_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  profile   Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([workspaceId, profileId])
+  @@map("workspace_members")
+}
+
+model Board {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
+  name        String
+  description String?
+  color       String?
+  createdById String   @map("created_by") @db.Uuid
+  archivedAt  DateTime? @map("archived_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy Profile   @relation("BoardCreatedBy", fields: [createdById], references: [id])
+  lists     List[]
+
+  @@index([workspaceId])
+  @@map("boards")
+}
+
+model List {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  boardId   String   @map("board_id") @db.Uuid
+  name      String
+  position  Float
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  board Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  cards Card[]
+
+  @@index([boardId, position])
+  @@map("lists")
+}
+
+enum CardPriority {
+  low
+  medium
+  high
+  urgent
+
+  @@map("card_priority")
+}
+
+model Card {
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  listId      String        @map("list_id") @db.Uuid
+  title       String
+  description String?
+  position    Float
+  priority    CardPriority?
+  dueDate     DateTime?     @map("due_date")
+  assigneeId  String?       @map("assignee_id") @db.Uuid
+  createdById String        @map("created_by") @db.Uuid
+  archivedAt  DateTime?     @map("archived_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  list      List      @relation(fields: [listId], references: [id], onDelete: Cascade)
+  assignee  Profile?  @relation("CardAssignee", fields: [assigneeId], references: [id])
+  createdBy Profile   @relation("CardCreatedBy", fields: [createdById], references: [id])
+  comments  Comment[]
+
+  @@index([listId, position])
+  @@index([assigneeId])
+  @@map("cards")
+}
+
+model Comment {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cardId    String   @map("card_id") @db.Uuid
+  authorId  String   @map("author_id") @db.Uuid
+  body      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  card   Card    @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  author Profile @relation(fields: [authorId], references: [id])
+
+  @@index([cardId, createdAt])
+  @@map("comments")
+}

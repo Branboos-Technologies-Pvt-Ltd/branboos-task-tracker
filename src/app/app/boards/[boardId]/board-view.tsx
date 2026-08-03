@@ -112,43 +112,37 @@ export function BoardView({
     const activeId = String(active.id);
     const overId = String(over.id);
 
-    // Compute reordering within the destination list
-    setLists((prev) => {
-      const destListId = findListIdOfCardIn(prev, activeId);
-      if (!destListId) return prev;
-      const destList = prev.find((l) => l.id === destListId);
-      if (!destList) return prev;
+    const destListId = findListIdOfCardIn(lists, activeId);
+    if (!destListId) return;
+    const destList = lists.find((l) => l.id === destListId);
+    if (!destList) return;
 
-      const activeIndex = destList.cards.findIndex((c) => c.id === activeId);
-      const overIndex = destList.cards.findIndex((c) => c.id === overId);
-      if (activeIndex === -1) return prev;
+    const activeIndex = destList.cards.findIndex((c) => c.id === activeId);
+    const overIndex = destList.cards.findIndex((c) => c.id === overId);
+    if (activeIndex === -1) return;
 
-      // If dropped on a card in the same list, move to that index; else keep current.
-      const insertAt =
-        overIndex === -1 || activeIndex === overIndex ? activeIndex : overIndex;
+    const insertAt =
+      overIndex === -1 || activeIndex === overIndex ? activeIndex : overIndex;
 
-      const reordered = [...destList.cards];
-      const [moved] = reordered.splice(activeIndex, 1);
-      reordered.splice(insertAt, 0, moved);
+    const reordered = [...destList.cards];
+    const [moved] = reordered.splice(activeIndex, 1);
+    reordered.splice(insertAt, 0, moved);
 
-      const newPosition = calcPosition(reordered, insertAt);
+    const newPosition = calcPosition(reordered, insertAt);
+    const finalCards = reordered.map((c, i) =>
+      i === insertAt ? { ...c, position: newPosition, listId: destListId } : c,
+    );
 
-      // Fire the server update; do not await to keep UI snappy.
-      startTransition(() => {
-        moveCard(boardId, {
-          cardId: activeId,
-          targetListId: destListId,
-          targetPosition: newPosition,
-        });
+    setLists((prev) =>
+      prev.map((l) => (l.id === destListId ? { ...l, cards: finalCards } : l)),
+    );
+
+    startTransition(() => {
+      moveCard(boardId, {
+        cardId: activeId,
+        targetListId: destListId,
+        targetPosition: newPosition,
       });
-
-      const finalCards = reordered.map((c, i) =>
-        i === insertAt ? { ...c, position: newPosition, listId: destListId } : c,
-      );
-
-      return prev.map((l) =>
-        l.id === destListId ? { ...l, cards: finalCards } : l,
-      );
     });
   }
 

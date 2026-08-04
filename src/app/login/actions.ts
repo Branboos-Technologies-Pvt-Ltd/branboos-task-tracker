@@ -11,7 +11,9 @@ const emailSchema = z.object({
 
 const codeSchema = z.object({
   email: z.string().email(),
-  code: z.string().regex(/^\d{6}$/, "Enter the 6-digit code from your email"),
+  code: z
+    .string()
+    .regex(/^\d{6,10}$/, "Enter the numeric code from your email"),
 });
 
 export type LoginState =

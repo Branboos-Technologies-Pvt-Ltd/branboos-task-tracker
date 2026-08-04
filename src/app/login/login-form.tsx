@@ -32,7 +32,7 @@ export function LoginForm() {
             We sent a sign-in email to <span className="font-medium">{sentEmail}</span>.
           </p>
           <p className="text-xs text-zinc-500">
-            Click the link in the email, <em>or</em> enter the 6-digit code below.
+            Click the link in the email, <em>or</em> enter the code below.
           </p>
         </div>
         <form action={codeAction} className="flex flex-col gap-3">
@@ -41,16 +41,16 @@ export function LoginForm() {
             htmlFor="code"
             className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
           >
-            6-digit code
+            Sign-in code
           </label>
           <Input
             id="code"
             name="code"
             type="text"
             inputMode="numeric"
-            pattern="\d{6}"
-            maxLength={6}
-            placeholder="123456"
+            pattern="\d{6,10}"
+            maxLength={10}
+            placeholder="12345678"
             autoComplete="one-time-code"
             required
             disabled={codePending}

@@ -31,9 +31,12 @@ export async function requestMagicLink(
   const supabase = await createClient();
 
   const headerList = await headers();
-  const origin =
+  const rawOrigin =
     process.env.NEXT_PUBLIC_SITE_URL ??
     `${headerList.get("x-forwarded-proto") ?? "http"}://${headerList.get("host")}`;
+  // Strip any trailing slash so we never produce `https://…//auth/callback`,
+  // which would fail to match the exact URL in Supabase's allow-list.
+  const origin = rawOrigin.replace(/\/+$/, "");
 
   const { error } = await supabase.auth.signInWithOtp({
     email: parsed.data.email,

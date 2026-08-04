@@ -1,0 +1,10 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build.environment]
+  # Give the build enough headroom for Next.js + Prisma type generation.
+  NODE_OPTIONS = "--max-old-space-size=4096"

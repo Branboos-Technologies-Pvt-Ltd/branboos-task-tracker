@@ -3,24 +3,8 @@ import { formatDistanceToNow } from "date-fns";
 import { LayoutIcon } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/auth";
+import { boardGradient } from "@/lib/board-gradients";
 import { NewBoardDialog } from "./new-board-dialog";
-
-const GRADIENTS = [
-  "from-indigo-500 to-violet-500",
-  "from-emerald-500 to-teal-500",
-  "from-pink-500 to-rose-500",
-  "from-amber-500 to-orange-500",
-  "from-sky-500 to-blue-500",
-  "from-fuchsia-500 to-purple-500",
-  "from-cyan-500 to-teal-500",
-  "from-lime-500 to-green-500",
-];
-
-function gradientFor(name: string): string {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) | 0;
-  return GRADIENTS[Math.abs(hash) % GRADIENTS.length];
-}
 
 export default async function AppHome() {
   const { workspace } = await requireProfile();
@@ -71,14 +55,14 @@ export default async function AppHome() {
               (sum, list) => sum + list._count.cards,
               0,
             );
-            const gradient = gradientFor(board.name);
+            const gradient = boardGradient(board.name);
             return (
               <Link
                 key={board.id}
                 href={`/app/boards/${board.id}`}
                 className="group overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/5 transition-all hover:shadow-md hover:ring-black/10 dark:bg-zinc-900 dark:ring-white/10 dark:hover:ring-white/20"
               >
-                <div className={`h-16 bg-gradient-to-br ${gradient}`} />
+                <div className={`h-14 bg-gradient-to-br ${gradient}`} />
                 <div className="flex flex-col gap-2 p-4">
                   <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
                     {board.name}

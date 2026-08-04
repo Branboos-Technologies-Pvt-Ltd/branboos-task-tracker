@@ -4,25 +4,9 @@ import { ChevronRightIcon } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/auth";
 import { listWorkspaceMembers } from "@/lib/members.server";
+import { boardGradient } from "@/lib/board-gradients";
 import { BoardView } from "./board-view";
 import type { CardPriorityValue } from "./types";
-
-const GRADIENTS = [
-  "from-indigo-500 to-violet-500",
-  "from-emerald-500 to-teal-500",
-  "from-pink-500 to-rose-500",
-  "from-amber-500 to-orange-500",
-  "from-sky-500 to-blue-500",
-  "from-fuchsia-500 to-purple-500",
-  "from-cyan-500 to-teal-500",
-  "from-lime-500 to-green-500",
-];
-
-function gradientFor(name: string): string {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) | 0;
-  return GRADIENTS[Math.abs(hash) % GRADIENTS.length];
-}
 
 export default async function BoardPage({
   params,
@@ -72,7 +56,7 @@ export default async function BoardPage({
   }));
 
   const totalCards = board.lists.reduce((sum, l) => sum + l.cards.length, 0);
-  const gradient = gradientFor(board.name);
+  const gradient = boardGradient(board.name);
 
   return (
     <div className="flex flex-col gap-5">

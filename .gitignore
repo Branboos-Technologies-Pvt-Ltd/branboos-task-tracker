@@ -46,3 +46,6 @@ next-env.d.ts
 .agents/
 .windsurf/
 skills-lock.json
+
+# Internal project notes / AI-agent reference — kept local so repo can stay public.
+PROJECT_NOTES.md

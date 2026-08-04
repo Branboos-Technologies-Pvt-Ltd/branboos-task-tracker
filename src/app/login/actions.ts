@@ -9,6 +9,15 @@ const emailSchema = z.object({
   email: z.string().email("Enter a valid email address"),
 });
 
+const signUpSchema = z.object({
+  email: z.string().email("Enter a valid email address"),
+  fullName: z
+    .string()
+    .trim()
+    .min(1, "Please enter your name")
+    .max(80, "Name is too long"),
+});
+
 const codeSchema = z.object({
   email: z.string().email(),
   code: z
@@ -21,6 +30,16 @@ export type LoginState =
   | { status: "sent"; email: string }
   | { status: "error"; message: string; email?: string };
 
+async function resolveOrigin(): Promise<string> {
+  const headerList = await headers();
+  const rawOrigin =
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    `${headerList.get("x-forwarded-proto") ?? "http"}://${headerList.get("host")}`;
+  // Strip any trailing slash so we never produce `https://…//auth/callback`,
+  // which would fail to match the exact URL in Supabase's allow-list.
+  return rawOrigin.replace(/\/+$/, "");
+}
+
 export async function requestMagicLink(
   _prev: LoginState,
   formData: FormData,
@@ -31,14 +50,7 @@ export async function requestMagicLink(
   }
 
   const supabase = await createClient();
-
-  const headerList = await headers();
-  const rawOrigin =
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    `${headerList.get("x-forwarded-proto") ?? "http"}://${headerList.get("host")}`;
-  // Strip any trailing slash so we never produce `https://…//auth/callback`,
-  // which would fail to match the exact URL in Supabase's allow-list.
-  const origin = rawOrigin.replace(/\/+$/, "");
+  const origin = await resolveOrigin();
 
   const { error } = await supabase.auth.signInWithOtp({
     email: parsed.data.email,
@@ -49,6 +61,41 @@ export async function requestMagicLink(
 
   if (error) {
     console.error("[login] signInWithOtp error:", JSON.stringify(error, null, 2));
+    return { status: "error", message: describeAuthError(error) };
+  }
+
+  return { status: "sent", email: parsed.data.email };
+}
+
+export async function requestSignUp(
+  _prev: LoginState,
+  formData: FormData,
+): Promise<LoginState> {
+  const parsed = signUpSchema.safeParse({
+    email: formData.get("email"),
+    fullName: formData.get("fullName"),
+  });
+  if (!parsed.success) {
+    return { status: "error", message: parsed.error.issues[0].message };
+  }
+
+  const supabase = await createClient();
+  const origin = await resolveOrigin();
+
+  // Pass full_name in user_metadata — our handle_new_user trigger reads this
+  // and populates profiles.full_name on account creation.
+  const { error } = await supabase.auth.signInWithOtp({
+    email: parsed.data.email,
+    options: {
+      emailRedirectTo: `${origin}/auth/callback`,
+      data: {
+        full_name: parsed.data.fullName,
+      },
+    },
+  });
+
+  if (error) {
+    console.error("[login] signUp error:", JSON.stringify(error, null, 2));
     return { status: "error", message: describeAuthError(error) };
   }
 

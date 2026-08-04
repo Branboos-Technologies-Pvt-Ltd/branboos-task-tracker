@@ -14,6 +14,7 @@ import {
   XIcon,
 } from "lucide-react";
 import { signOut } from "@/app/login/actions";
+import { BranBoosMark } from "@/components/branboos-logo";
 import { Button } from "@/components/ui/button";
 
 type NavItem = {
@@ -83,18 +84,16 @@ export function Sidebar({
       <div className={`flex flex-col gap-6 ${collapsed ? "p-2" : "p-4"}`}>
         <Link
           href="/app"
-          className={`flex items-center gap-3 ${collapsed ? "justify-center" : ""}`}
+          className={`flex items-center gap-2.5 ${collapsed ? "justify-center" : ""}`}
           title={workspaceName}
         >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-sm font-bold text-white shadow-sm">
-            B
-          </div>
+          <BranBoosMark size={collapsed ? 32 : 36} className="shrink-0" />
           {!collapsed && (
             <div className="flex flex-col leading-tight">
-              <span className="text-[10px] font-medium tracking-wide text-zinc-500 uppercase">
+              <span className="text-sm font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
                 {workspaceName}
               </span>
-              <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+              <span className="text-[10px] font-medium tracking-wide text-zinc-500">
                 Task Tracker
               </span>
             </div>
@@ -195,16 +194,14 @@ export function Sidebar({
         <Link
           href="/app"
           onClick={() => setMobileOpen(false)}
-          className="flex items-center gap-3"
+          className="flex items-center gap-2.5"
         >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-sm font-bold text-white shadow-sm">
-            B
-          </div>
+          <BranBoosMark size={36} className="shrink-0" />
           <div className="flex flex-col leading-tight">
-            <span className="text-[10px] font-medium tracking-wide text-zinc-500 uppercase">
+            <span className="text-sm font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
               {workspaceName}
             </span>
-            <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+            <span className="text-[10px] font-medium tracking-wide text-zinc-500">
               Task Tracker
             </span>
           </div>

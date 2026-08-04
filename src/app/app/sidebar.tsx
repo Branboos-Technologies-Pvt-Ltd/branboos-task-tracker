@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  ChevronsLeftIcon,
-  ChevronsRightIcon,
-  KanbanIcon,
+  KanbanSquareIcon,
   MenuIcon,
+  PanelLeftCloseIcon,
+  PanelLeftOpenIcon,
   UserIcon,
   UsersIcon,
   XIcon,
@@ -25,7 +25,7 @@ const NAV: NavItem[] = [
   {
     href: "/app",
     label: "Boards",
-    icon: KanbanIcon,
+    icon: KanbanSquareIcon,
     match: (p) => p === "/app",
   },
   {
@@ -85,23 +85,40 @@ export function Sidebar({
   const desktopContent = (
     <div className="flex h-full flex-col">
       <div className={`flex flex-col gap-5 ${collapsed ? "p-2" : "p-4"}`}>
-        <Link
-          href="/app"
-          className={`flex items-center gap-2.5 ${collapsed ? "justify-center" : ""}`}
-          title={workspaceName}
+        <div
+          className={`flex items-center ${collapsed ? "flex-col gap-2" : "justify-between gap-2"}`}
         >
-          <BranBoosMark size={collapsed ? 32 : 36} className="shrink-0" />
-          {!collapsed && (
-            <div className="flex flex-col leading-tight">
-              <span className="text-sm font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-                {workspaceName}
-              </span>
-              <span className="text-[10px] font-medium tracking-wide text-zinc-500">
-                Task Tracker
-              </span>
-            </div>
-          )}
-        </Link>
+          <Link
+            href="/app"
+            className={`flex items-center gap-2.5 ${collapsed ? "justify-center" : ""}`}
+            title={workspaceName}
+          >
+            <BranBoosMark size={collapsed ? 32 : 36} className="shrink-0" />
+            {!collapsed && (
+              <div className="flex flex-col leading-tight">
+                <span className="text-sm font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+                  {workspaceName}
+                </span>
+                <span className="text-[10px] font-medium tracking-wide text-zinc-500">
+                  Task Tracker
+                </span>
+              </div>
+            )}
+          </Link>
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            className="rounded-md p-1.5 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? (
+              <PanelLeftOpenIcon className="h-4 w-4" />
+            ) : (
+              <PanelLeftCloseIcon className="h-4 w-4" />
+            )}
+          </button>
+        </div>
 
         <nav className="flex flex-col gap-1">
           {NAV.map((item) => {
@@ -167,24 +184,6 @@ export function Sidebar({
         </div>
       )}
 
-      {/* Bottom: collapse toggle only */}
-      <div className={`border-t border-zinc-200 dark:border-zinc-800 ${collapsed ? "p-2" : "p-3"}`}>
-        <button
-          type="button"
-          onClick={toggleCollapsed}
-          className={`flex w-full items-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 ${
-            collapsed ? "justify-center p-2" : "justify-center p-2"
-          }`}
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {collapsed ? (
-            <ChevronsRightIcon className="h-4 w-4" />
-          ) : (
-            <ChevronsLeftIcon className="h-4 w-4" />
-          )}
-        </button>
-      </div>
     </div>
   );
 

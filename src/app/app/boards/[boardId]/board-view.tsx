@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { differenceInCalendarDays, format, isPast, isToday } from "date-fns";
 import {
   DndContext,
@@ -21,10 +21,18 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { CalendarIcon } from "lucide-react";
+import { Avatar } from "@/components/avatar";
+import type { Member } from "@/lib/members";
 import { moveCard } from "./actions";
 import { AddCardForm } from "./add-card-form";
 import { AddListForm } from "./add-list-form";
 import { CardDialog } from "./card-dialog";
+import {
+  FilterBar,
+  cardMatches,
+  emptyFilters,
+  type BoardFilters,
+} from "./filter-bar";
 import {
   PRIORITY_STYLES,
   columnTheme,
@@ -36,13 +44,18 @@ import {
 export function BoardView({
   boardId,
   initialLists,
+  members,
+  currentUserId,
 }: {
   boardId: string;
   initialLists: ListData[];
+  members: Member[];
+  currentUserId: string;
 }) {
   const [lists, setLists] = useState<ListData[]>(initialLists);
   const [activeCard, setActiveCard] = useState<CardData | null>(null);
   const [openCardId, setOpenCardId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<BoardFilters>(emptyFilters);
   const [, startTransition] = useTransition();
 
   useEffect(() => {
@@ -51,6 +64,22 @@ export function BoardView({
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
+
+  const membersById = useMemo(() => {
+    const map = new Map<string, Member>();
+    for (const m of members) map.set(m.id, m);
+    return map;
+  }, [members]);
+
+  const filteredLists = useMemo(
+    () =>
+      lists.map((list) => ({
+        ...list,
+        cards: list.cards.filter((c) => cardMatches(c, filters)),
+        totalCards: list.cards.length,
+      })),
+    [lists, filters],
   );
 
   function findCard(id: string): { card: CardData; listId: string } | null {
@@ -137,20 +166,29 @@ export function BoardView({
       : null;
 
   return (
-    <>
-      <div>
+    <div className="flex flex-col gap-4">
+      <FilterBar
+        members={members}
+        currentUserId={currentUserId}
+        filters={filters}
+        onChange={setFilters}
+      />
+
+      <div className="scroll-hide -mx-6 overflow-x-auto px-6 pb-3 md:-mx-8 md:px-8">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {lists.map((list) => (
+          <div className="flex items-start gap-4">
+            {filteredLists.map((list) => (
               <ListColumn
                 key={list.id}
                 boardId={boardId}
                 list={list}
+                totalCards={list.totalCards}
+                membersById={membersById}
                 onCardClick={setOpenCardId}
               />
             ))}
@@ -159,7 +197,15 @@ export function BoardView({
           <DragOverlay>
             {activeCard && (
               <div className="w-72 rotate-2">
-                <CardBody card={activeCard} elevated />
+                <CardBody
+                  card={activeCard}
+                  assignee={
+                    activeCard.assigneeId
+                      ? membersById.get(activeCard.assigneeId) ?? null
+                      : null
+                  }
+                  elevated
+                />
               </div>
             )}
           </DragOverlay>
@@ -170,35 +216,41 @@ export function BoardView({
         <CardDialog
           boardId={boardId}
           card={openCard}
+          members={members}
           open={true}
           onOpenChange={(open) => {
             if (!open) setOpenCardId(null);
           }}
         />
       )}
-    </>
+    </div>
   );
 }
 
 function ListColumn({
   boardId,
   list,
+  totalCards,
+  membersById,
   onCardClick,
 }: {
   boardId: string;
   list: ListData;
+  totalCards: number;
+  membersById: Map<string, Member>;
   onCardClick: (id: string) => void;
 }) {
   const cardIds = list.cards.map((c) => c.id);
   const { setNodeRef, isOver } = useDroppable({ id: list.id });
   const theme = columnTheme(list.name);
+  const hiddenByFilter = totalCards - list.cards.length;
 
   return (
     <SortableContext id={list.id} items={cardIds} strategy={verticalListSortingStrategy}>
       <div
         ref={setNodeRef}
         data-list-id={list.id}
-        className={`flex w-full flex-col overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/[0.04] transition-colors dark:bg-zinc-900 dark:ring-white/[0.06] ${
+        className={`flex w-72 shrink-0 flex-col overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/[0.04] transition-colors dark:bg-zinc-900 dark:ring-white/[0.06] ${
           isOver ? theme.droppableBg : ""
         }`}
       >
@@ -215,6 +267,9 @@ function ListColumn({
               className={`rounded-full px-2 py-0.5 text-xs font-semibold ${theme.countBadge}`}
             >
               {list.cards.length}
+              {hiddenByFilter > 0 && (
+                <span className="ml-1 opacity-60">/{totalCards}</span>
+              )}
             </span>
           </div>
           <div className="flex min-h-4 flex-col gap-2">
@@ -222,12 +277,15 @@ function ListColumn({
               <SortableCard
                 key={card.id}
                 card={card}
+                assignee={
+                  card.assigneeId ? membersById.get(card.assigneeId) ?? null : null
+                }
                 onClick={() => onCardClick(card.id)}
               />
             ))}
             {list.cards.length === 0 && (
               <div className="rounded-md border border-dashed border-zinc-200 py-4 text-center text-xs text-zinc-400 dark:border-zinc-700">
-                Drop cards here
+                {hiddenByFilter > 0 ? "No matching cards" : "Drop cards here"}
               </div>
             )}
           </div>
@@ -238,7 +296,15 @@ function ListColumn({
   );
 }
 
-function SortableCard({ card, onClick }: { card: CardData; onClick: () => void }) {
+function SortableCard({
+  card,
+  assignee,
+  onClick,
+}: {
+  card: CardData;
+  assignee: Member | null;
+  onClick: () => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: card.id });
 
@@ -262,12 +328,20 @@ function SortableCard({ card, onClick }: { card: CardData; onClick: () => void }
       tabIndex={0}
       className="cursor-grab select-none rounded-md transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 hover:-translate-y-0.5 active:cursor-grabbing"
     >
-      <CardBody card={card} />
+      <CardBody card={card} assignee={assignee} />
     </div>
   );
 }
 
-function CardBody({ card, elevated = false }: { card: CardData; elevated?: boolean }) {
+function CardBody({
+  card,
+  assignee,
+  elevated = false,
+}: {
+  card: CardData;
+  assignee: Member | null;
+  elevated?: boolean;
+}) {
   const priorityStyle = card.priority ? PRIORITY_STYLES[card.priority] : null;
   const due = card.dueDate;
   const overdue = due && isPast(due) && !isToday(due);
@@ -284,15 +358,18 @@ function CardBody({ card, elevated = false }: { card: CardData; elevated?: boole
       <div className="flex">
         {priorityStyle && <div className={`w-1 shrink-0 ${priorityStyle.bar}`} />}
         <div className="flex flex-1 flex-col gap-2 p-2.5">
-          <p className="text-sm leading-snug">{card.title}</p>
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-sm leading-snug text-zinc-900 dark:text-zinc-100">
+              {card.title}
+            </p>
+            {assignee && <Avatar member={assignee} size="xs" />}
+          </div>
 
           {(card.component || card.priority) && (
             <div className="flex flex-wrap gap-1">
               {card.component && (
                 <span
-                  className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${componentColor(
-                    card.component,
-                  )}`}
+                  className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${componentColor(card.component)}`}
                 >
                   {card.component}
                 </span>
@@ -307,20 +384,23 @@ function CardBody({ card, elevated = false }: { card: CardData; elevated?: boole
             </div>
           )}
 
-          {due && (
-            <div
-              className={`inline-flex w-fit items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                overdue
-                  ? "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
-                  : dueSoon
-                  ? "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300"
-                  : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
-              }`}
-            >
-              <CalendarIcon className="h-3 w-3" />
-              {format(due, "MMM d")}
-            </div>
-          )}
+          <div className="flex items-center justify-between gap-1">
+            <span className="font-mono text-[10px] text-zinc-500">{card.key}</span>
+            {due && (
+              <span
+                className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                  overdue
+                    ? "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
+                    : dueSoon
+                    ? "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300"
+                    : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+                }`}
+              >
+                <CalendarIcon className="h-3 w-3" />
+                {format(due, "MMM d")}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@ export type CardPriorityValue = "low" | "medium" | "high" | "urgent";
 
 export type CardData = {
   id: string;
+  key: string;
   title: string;
   description: string | null;
   component: string | null;
@@ -10,6 +11,7 @@ export type CardData = {
   startDate: Date | null;
   dueDate: Date | null;
   listId: string;
+  assigneeId: string | null;
 };
 
 export type ListData = {

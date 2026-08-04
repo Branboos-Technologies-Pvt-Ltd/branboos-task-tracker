@@ -13,6 +13,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import type { Member } from "@/lib/members";
+import { memberDisplayName } from "@/lib/members";
 import { deleteCard, updateCard } from "./actions";
 import type { CardData } from "./types";
 
@@ -24,11 +26,13 @@ function toDateInput(d: Date | null): string {
 export function CardDialog({
   boardId,
   card,
+  members,
   open,
   onOpenChange,
 }: {
   boardId: string;
   card: CardData;
+  members: Member[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -40,7 +44,10 @@ export function CardDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Card details</DialogTitle>
+          <DialogTitle>
+            <span className="font-mono text-xs text-zinc-500">{card.key}</span>{" "}
+            Card details
+          </DialogTitle>
         </DialogHeader>
         <form
           action={(formData) => {
@@ -106,6 +113,24 @@ export function CardDialog({
                 <option value="urgent">Urgent</option>
               </select>
             </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="assigneeId">Assignee</Label>
+            <select
+              id="assigneeId"
+              name="assigneeId"
+              defaultValue={card.assigneeId ?? ""}
+              disabled={pending}
+              className="h-8 rounded-md border border-input bg-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+            >
+              <option value="">Unassigned</option>
+              {members.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {memberDisplayName(m)} — {m.email}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

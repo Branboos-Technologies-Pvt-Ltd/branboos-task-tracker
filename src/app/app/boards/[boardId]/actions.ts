@@ -12,7 +12,7 @@ async function assertBoardAccess(boardId: string) {
     where: { id: boardId, workspaceId: workspace.id },
   });
   if (!board) throw new Error("Board not found or access denied");
-  return { board, profileId: profile.id };
+  return { board, profileId: profile.id, workspaceId: workspace.id };
 }
 
 const listSchema = z.object({
@@ -47,7 +47,7 @@ export async function createCard(
   listId: string,
   formData: FormData,
 ) {
-  const { profileId } = await assertBoardAccess(boardId);
+  const { profileId, workspaceId } = await assertBoardAccess(boardId);
   const parsed = cardCreateSchema.safeParse({ title: formData.get("title") });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -58,13 +58,23 @@ export async function createCard(
   });
   const position = (last?.position ?? 0) + 1000;
 
-  await prisma.card.create({
-    data: {
-      listId,
-      title: parsed.data.title,
-      position,
-      createdById: profileId,
-    },
+  await prisma.$transaction(async (tx) => {
+    const seq = await tx.workspaceCardSequence.upsert({
+      where: { workspaceId },
+      update: { lastNumber: { increment: 1 } },
+      create: { workspaceId, lastNumber: 1 },
+    });
+
+    await tx.card.create({
+      data: {
+        workspaceId,
+        number: seq.lastNumber,
+        listId,
+        title: parsed.data.title,
+        position,
+        createdById: profileId,
+      },
+    });
   });
 
   revalidatePath(`/app/boards/${boardId}`);
@@ -138,6 +148,10 @@ export async function updateCard(
   const dueDate = readDate(formData, "dueDate");
   if (dueDate && "error" in dueDate) return dueDate;
 
+  const assigneeRaw = readString(formData, "assigneeId");
+  const assigneeId =
+    assigneeRaw && /^[0-9a-f-]{36}$/i.test(assigneeRaw) ? assigneeRaw : null;
+
   try {
     await prisma.card.update({
       where: { id: cardId },
@@ -148,6 +162,7 @@ export async function updateCard(
         priority,
         startDate: startDate as Date | null,
         dueDate: dueDate as Date | null,
+        assigneeId,
       },
     });
   } catch (err) {

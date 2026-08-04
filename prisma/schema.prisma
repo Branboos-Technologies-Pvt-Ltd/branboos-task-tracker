@@ -48,13 +48,25 @@ model Workspace {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name      String
   slug      String   @unique
+  prefix    String
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  members WorkspaceMember[]
-  boards  Board[]
+  members  WorkspaceMember[]
+  boards   Board[]
+  cards    Card[]
+  sequence WorkspaceCardSequence?
 
   @@map("workspaces")
+}
+
+model WorkspaceCardSequence {
+  workspaceId String @id @map("workspace_id") @db.Uuid
+  lastNumber  Int    @default(0) @map("last_number")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("workspace_card_sequences")
 }
 
 model WorkspaceMember {
@@ -115,6 +127,8 @@ enum CardPriority {
 
 model Card {
   id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspaceId String        @map("workspace_id") @db.Uuid
+  number      Int
   listId      String        @map("list_id") @db.Uuid
   title       String
   description String?
@@ -129,11 +143,13 @@ model Card {
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
 
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   list      List      @relation(fields: [listId], references: [id], onDelete: Cascade)
   assignee  Profile?  @relation("CardAssignee", fields: [assigneeId], references: [id])
   createdBy Profile   @relation("CardCreatedBy", fields: [createdById], references: [id])
   comments  Comment[]
 
+  @@unique([workspaceId, number])
   @@index([listId, position])
   @@index([assigneeId])
   @@map("cards")

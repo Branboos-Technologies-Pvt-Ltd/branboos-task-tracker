@@ -43,7 +43,8 @@ export async function requestMagicLink(
   });
 
   if (error) {
-    return { status: "error", message: error.message };
+    console.error("[login] signInWithOtp error:", JSON.stringify(error, null, 2));
+    return { status: "error", message: describeAuthError(error) };
   }
 
   return { status: "sent", email: parsed.data.email };
@@ -73,10 +74,33 @@ export async function verifyEmailCode(
   });
 
   if (error) {
-    return { status: "error", message: error.message, email: parsed.data.email };
+    console.error("[login] verifyOtp error:", JSON.stringify(error, null, 2));
+    return {
+      status: "error",
+      message: describeAuthError(error),
+      email: parsed.data.email,
+    };
   }
 
   redirect("/app");
+}
+
+// Supabase auth errors sometimes have `.message` as an empty object or blank
+// string (e.g. when SMTP fails silently). Extract something useful for the UI.
+function describeAuthError(err: unknown): string {
+  if (typeof err === "string") return err;
+  if (err && typeof err === "object") {
+    const e = err as { message?: unknown; code?: unknown; status?: unknown; name?: unknown };
+    if (typeof e.message === "string" && e.message.trim().length > 2) return e.message;
+    if (typeof e.code === "string" && e.code.length > 0) return `Error: ${e.code}`;
+    if (typeof e.status === "number") {
+      if (e.status === 429) return "Email rate limit reached. Wait a minute and try again.";
+      if (e.status >= 500) return "Email service is unreachable. Check SMTP config in Supabase.";
+      return `Error ${e.status}`;
+    }
+    if (typeof e.name === "string") return e.name;
+  }
+  return "Something went wrong. Check the server logs.";
 }
 
 export async function signOut() {

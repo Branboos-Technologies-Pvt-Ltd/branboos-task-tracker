@@ -48,12 +48,14 @@ const COLLAPSED_KEY = "branboos-sidebar-collapsed";
 
 export function Sidebar({
   workspaceName,
+  userDisplayName,
   userEmail,
-  userInitial,
+  userInitials,
 }: {
   workspaceName: string;
+  userDisplayName: string;
   userEmail: string;
-  userInitial: string;
+  userInitials: string;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -147,18 +149,26 @@ export function Sidebar({
           className={`flex items-center ${collapsed ? "justify-center" : "gap-2.5"} mb-3`}
         >
           <div
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-xs font-medium text-white"
-            title={userEmail}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-xs font-semibold text-white"
+            title={`${userDisplayName} (${userEmail})`}
           >
-            {userInitial}
+            {userInitials}
           </div>
           {!collapsed && (
-            <span
-              className="truncate text-xs text-zinc-700 dark:text-zinc-300"
-              title={userEmail}
-            >
-              {userEmail}
-            </span>
+            <div className="flex min-w-0 flex-col leading-tight">
+              <span
+                className="truncate text-xs font-medium text-zinc-800 dark:text-zinc-200"
+                title={userDisplayName}
+              >
+                {userDisplayName}
+              </span>
+              <span
+                className="truncate text-[10px] text-zinc-500"
+                title={userEmail}
+              >
+                {userEmail}
+              </span>
+            </div>
           )}
         </div>
 
@@ -223,12 +233,23 @@ export function Sidebar({
       </div>
       <div className="border-t border-zinc-200 p-4 dark:border-zinc-800">
         <div className="mb-3 flex items-center gap-2.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-xs font-medium text-white">
-            {userInitial}
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-xs font-semibold text-white">
+            {userInitials}
           </div>
-          <span className="truncate text-xs text-zinc-700 dark:text-zinc-300">
-            {userEmail}
-          </span>
+          <div className="flex min-w-0 flex-col leading-tight">
+            <span
+              className="truncate text-xs font-medium text-zinc-800 dark:text-zinc-200"
+              title={userDisplayName}
+            >
+              {userDisplayName}
+            </span>
+            <span
+              className="truncate text-[10px] text-zinc-500"
+              title={userEmail}
+            >
+              {userEmail}
+            </span>
+          </div>
         </div>
         <form action={signOut}>
           <Button

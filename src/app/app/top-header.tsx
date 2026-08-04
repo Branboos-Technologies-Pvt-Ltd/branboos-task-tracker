@@ -18,12 +18,14 @@ function currentSection(pathname: string): string {
 
 export function TopHeader({
   workspaceName,
-  userInitial,
+  userDisplayName,
   userEmail,
+  userInitials,
 }: {
   workspaceName: string;
-  userInitial: string;
+  userDisplayName: string;
   userEmail: string;
+  userInitials: string;
 }) {
   const pathname = usePathname();
   const section = currentSection(pathname);
@@ -45,12 +47,25 @@ export function TopHeader({
         )}
       </div>
 
-      <div
-        className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-xs font-medium text-white shadow-sm"
-        title={userEmail}
-        aria-label={userEmail}
-      >
-        {userInitial}
+      <div className="flex items-center gap-2.5">
+        <div className="hidden text-right sm:block">
+          <div className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
+            {userDisplayName}
+          </div>
+          <div
+            className="text-[10px] text-zinc-500"
+            title={userEmail}
+          >
+            {userEmail}
+          </div>
+        </div>
+        <div
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-xs font-semibold text-white shadow-sm"
+          title={`${userDisplayName} (${userEmail})`}
+          aria-label={userDisplayName}
+        >
+          {userInitials}
+        </div>
       </div>
     </header>
   );

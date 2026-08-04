@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronRightIcon } from "lucide-react";
+import { UserMenu } from "./user-menu";
 
 const ROUTE_LABELS: { match: RegExp; label: string }[] = [
   { match: /^\/app\/my/, label: "My Cards" },
@@ -47,26 +48,11 @@ export function TopHeader({
         )}
       </div>
 
-      <div className="flex items-center gap-2.5">
-        <div className="hidden text-right sm:block">
-          <div className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
-            {userDisplayName}
-          </div>
-          <div
-            className="text-[10px] text-zinc-500"
-            title={userEmail}
-          >
-            {userEmail}
-          </div>
-        </div>
-        <div
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-xs font-semibold text-white shadow-sm"
-          title={`${userDisplayName} (${userEmail})`}
-          aria-label={userDisplayName}
-        >
-          {userInitials}
-        </div>
-      </div>
+      <UserMenu
+        userDisplayName={userDisplayName}
+        userEmail={userEmail}
+        userInitials={userInitials}
+      />
     </header>
   );
 }

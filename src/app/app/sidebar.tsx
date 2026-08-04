@@ -7,15 +7,12 @@ import {
   ChevronsLeftIcon,
   ChevronsRightIcon,
   KanbanIcon,
-  LogOutIcon,
   MenuIcon,
   UserIcon,
   UsersIcon,
   XIcon,
 } from "lucide-react";
-import { signOut } from "@/app/login/actions";
 import { BranBoosMark } from "@/components/branboos-logo";
-import { Button } from "@/components/ui/button";
 
 type NavItem = {
   href: string;
@@ -29,7 +26,7 @@ const NAV: NavItem[] = [
     href: "/app",
     label: "Boards",
     icon: KanbanIcon,
-    match: (p) => p === "/app" || p.startsWith("/app/boards"),
+    match: (p) => p === "/app",
   },
   {
     href: "/app/my",
@@ -47,22 +44,26 @@ const NAV: NavItem[] = [
 
 const COLLAPSED_KEY = "branboos-sidebar-collapsed";
 
+export type SidebarBoard = {
+  id: string;
+  name: string;
+};
+
 export function Sidebar({
   workspaceName,
-  userDisplayName,
-  userEmail,
-  userInitials,
+  recentBoards,
+  totalBoards,
+  boardsListLimit,
 }: {
   workspaceName: string;
-  userDisplayName: string;
-  userEmail: string;
-  userInitials: string;
+  recentBoards: SidebarBoard[];
+  totalBoards: number;
+  boardsListLimit: number;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
 
-  // Hydrate collapsed state from localStorage after mount.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const stored = window.localStorage.getItem(COLLAPSED_KEY);
@@ -79,9 +80,11 @@ export function Sidebar({
     });
   }
 
+  const hasMoreBoards = totalBoards > boardsListLimit;
+
   const desktopContent = (
-    <div className="flex h-full flex-col justify-between">
-      <div className={`flex flex-col gap-6 ${collapsed ? "p-2" : "p-4"}`}>
+    <div className="flex h-full flex-col">
+      <div className={`flex flex-col gap-5 ${collapsed ? "p-2" : "p-4"}`}>
         <Link
           href="/app"
           className={`flex items-center gap-2.5 ${collapsed ? "justify-center" : ""}`}
@@ -125,72 +128,69 @@ export function Sidebar({
         </nav>
       </div>
 
-      <div className={`border-t border-zinc-200 dark:border-zinc-800 ${collapsed ? "p-2" : "p-4"}`}>
+      {/* Recent boards — only when expanded. Scrolls if there are lots. */}
+      {!collapsed && recentBoards.length > 0 && (
+        <div className="min-h-0 flex-1 overflow-y-auto border-t border-zinc-200 px-4 py-3 dark:border-zinc-800">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[10px] font-semibold tracking-widest text-zinc-500 uppercase">
+              Boards
+            </span>
+            <span className="text-[10px] text-zinc-400">{totalBoards}</span>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            {recentBoards.map((board) => {
+              const active = pathname === `/app/boards/${board.id}`;
+              return (
+                <Link
+                  key={board.id}
+                  href={`/app/boards/${board.id}`}
+                  className={`truncate rounded-md px-2.5 py-1.5 text-sm transition-colors ${
+                    active
+                      ? "bg-zinc-100 font-medium text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
+                      : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                  }`}
+                  title={board.name}
+                >
+                  {board.name}
+                </Link>
+              );
+            })}
+          </div>
+          {hasMoreBoards && (
+            <Link
+              href="/app"
+              className="mt-2 block rounded-md px-2.5 py-1.5 text-xs font-medium text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+            >
+              View all boards →
+            </Link>
+          )}
+        </div>
+      )}
+
+      {/* Bottom: collapse toggle only */}
+      <div className={`border-t border-zinc-200 dark:border-zinc-800 ${collapsed ? "p-2" : "p-3"}`}>
         <button
           type="button"
           onClick={toggleCollapsed}
-          className={`mb-3 flex w-full items-center gap-2 rounded-md text-xs text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 ${
-            collapsed ? "justify-center p-2" : "px-2.5 py-1.5"
+          className={`flex w-full items-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 ${
+            collapsed ? "justify-center p-2" : "justify-center p-2"
           }`}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? (
             <ChevronsRightIcon className="h-4 w-4" />
           ) : (
-            <>
-              <ChevronsLeftIcon className="h-4 w-4" />
-              <span>Collapse</span>
-            </>
+            <ChevronsLeftIcon className="h-4 w-4" />
           )}
         </button>
-
-        <div
-          className={`flex items-center ${collapsed ? "justify-center" : "gap-2.5"} mb-3`}
-        >
-          <div
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-xs font-semibold text-white"
-            title={`${userDisplayName} (${userEmail})`}
-          >
-            {userInitials}
-          </div>
-          {!collapsed && (
-            <div className="flex min-w-0 flex-col leading-tight">
-              <span
-                className="truncate text-xs font-medium text-zinc-800 dark:text-zinc-200"
-                title={userDisplayName}
-              >
-                {userDisplayName}
-              </span>
-              <span
-                className="truncate text-[10px] text-zinc-500"
-                title={userEmail}
-              >
-                {userEmail}
-              </span>
-            </div>
-          )}
-        </div>
-
-        <form action={signOut}>
-          <Button
-            type="submit"
-            variant="outline"
-            size="sm"
-            className={`${collapsed ? "w-full justify-center px-0" : "w-full justify-center"} gap-2`}
-            title="Sign out"
-          >
-            <LogOutIcon className="h-3.5 w-3.5" />
-            {!collapsed && "Sign out"}
-          </Button>
-        </form>
       </div>
     </div>
   );
 
-  // Mobile drawer always shows the expanded layout, regardless of collapsed state.
   const mobileContent = (
-    <div className="flex h-full flex-col justify-between">
-      <div className="flex flex-col gap-6 p-4">
+    <div className="flex h-full flex-col">
+      <div className="flex flex-col gap-5 p-4">
         <Link
           href="/app"
           onClick={() => setMobileOpen(false)}
@@ -228,45 +228,42 @@ export function Sidebar({
           })}
         </nav>
       </div>
-      <div className="border-t border-zinc-200 p-4 dark:border-zinc-800">
-        <div className="mb-3 flex items-center gap-2.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-xs font-semibold text-white">
-            {userInitials}
-          </div>
-          <div className="flex min-w-0 flex-col leading-tight">
-            <span
-              className="truncate text-xs font-medium text-zinc-800 dark:text-zinc-200"
-              title={userDisplayName}
-            >
-              {userDisplayName}
+      {recentBoards.length > 0 && (
+        <div className="min-h-0 flex-1 overflow-y-auto border-t border-zinc-200 px-4 py-3 dark:border-zinc-800">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[10px] font-semibold tracking-widest text-zinc-500 uppercase">
+              Boards
             </span>
-            <span
-              className="truncate text-[10px] text-zinc-500"
-              title={userEmail}
-            >
-              {userEmail}
-            </span>
+            <span className="text-[10px] text-zinc-400">{totalBoards}</span>
           </div>
+          <div className="flex flex-col gap-0.5">
+            {recentBoards.map((board) => (
+              <Link
+                key={board.id}
+                href={`/app/boards/${board.id}`}
+                onClick={() => setMobileOpen(false)}
+                className="truncate rounded-md px-2.5 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+              >
+                {board.name}
+              </Link>
+            ))}
+          </div>
+          {hasMoreBoards && (
+            <Link
+              href="/app"
+              onClick={() => setMobileOpen(false)}
+              className="mt-2 block rounded-md px-2.5 py-1.5 text-xs font-medium text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+            >
+              View all boards →
+            </Link>
+          )}
         </div>
-        <form action={signOut}>
-          <Button
-            type="submit"
-            variant="outline"
-            size="sm"
-            className="w-full justify-center gap-2"
-          >
-            <LogOutIcon className="h-3.5 w-3.5" />
-            Sign out
-          </Button>
-        </form>
-      </div>
+      )}
     </div>
   );
 
   return (
     <>
-      {/* Mobile hamburger — visible only on small screens, sits in the sticky
-          top header alongside it (rendered here for co-location with drawer). */}
       <button
         type="button"
         onClick={() => setMobileOpen(true)}
@@ -276,7 +273,6 @@ export function Sidebar({
         <MenuIcon className="h-5 w-5" />
       </button>
 
-      {/* Desktop sidebar — width transitions between collapsed and expanded. */}
       <aside
         className={`sticky top-0 hidden h-screen shrink-0 border-r border-zinc-200 bg-white transition-[width] duration-200 md:block dark:border-zinc-800 dark:bg-zinc-900/60 ${
           collapsed ? "w-16" : "w-60"
@@ -285,7 +281,6 @@ export function Sidebar({
         {desktopContent}
       </aside>
 
-      {/* Mobile drawer */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <button
@@ -294,7 +289,7 @@ export function Sidebar({
             onClick={() => setMobileOpen(false)}
             className="absolute inset-0 bg-black/40"
           />
-          <div className="absolute inset-y-0 left-0 w-72 max-w-[85vw] bg-white shadow-xl dark:bg-zinc-900">
+          <div className="absolute inset-y-0 left-0 w-72 max-w-[85vw] overflow-y-auto bg-white shadow-xl dark:bg-zinc-900">
             <button
               type="button"
               onClick={() => setMobileOpen(false)}

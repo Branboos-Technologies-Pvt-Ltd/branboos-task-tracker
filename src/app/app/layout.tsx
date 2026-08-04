@@ -1,8 +1,12 @@
+import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/auth";
 import { memberDisplayName, memberInitials } from "@/lib/members";
 import { NamePrompt } from "./name-prompt";
 import { Sidebar } from "./sidebar";
 import { TopHeader } from "./top-header";
+
+// How many boards to show in the sidebar quick-access list.
+const SIDEBAR_BOARDS_LIMIT = 8;
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, profile, workspace } = await requireProfile();
@@ -12,14 +16,26 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const displayName = memberDisplayName(memberLike);
   const initials = memberInitials(memberLike);
 
+  const [recentBoards, totalBoards] = await Promise.all([
+    prisma.board.findMany({
+      where: { workspaceId: workspace.id, archivedAt: null },
+      orderBy: { updatedAt: "desc" },
+      take: SIDEBAR_BOARDS_LIMIT,
+      select: { id: true, name: true },
+    }),
+    prisma.board.count({
+      where: { workspaceId: workspace.id, archivedAt: null },
+    }),
+  ]);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-zinc-100 dark:from-zinc-950 dark:to-zinc-900">
       <div className="flex min-h-screen">
         <Sidebar
           workspaceName={workspace.name}
-          userDisplayName={displayName}
-          userEmail={email}
-          userInitials={initials}
+          recentBoards={recentBoards}
+          totalBoards={totalBoards}
+          boardsListLimit={SIDEBAR_BOARDS_LIMIT}
         />
         <div className="flex min-w-0 flex-1 flex-col">
           <TopHeader

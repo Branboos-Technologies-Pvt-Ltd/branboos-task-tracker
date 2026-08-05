@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BellIcon } from "lucide-react";
+import type { NotificationRow } from "@/lib/notifications.server";
+import { NotificationsBell } from "./notifications-bell";
 import { UserMenu } from "./user-menu";
 
 const ROUTE_LABELS: { match: RegExp; label: string }[] = [
@@ -22,11 +23,15 @@ export function TopHeader({
   userDisplayName,
   userEmail,
   userInitials,
+  notifications,
+  unreadCount,
 }: {
   workspaceName: string;
   userDisplayName: string;
   userEmail: string;
   userInitials: string;
+  notifications: NotificationRow[];
+  unreadCount: number;
 }) {
   const pathname = usePathname();
   const section = currentSection(pathname);
@@ -49,15 +54,7 @@ export function TopHeader({
       </div>
 
       <div className="flex items-center gap-3.5">
-        {/* Notification bell — visual placeholder until we wire real notifications */}
-        <button
-          type="button"
-          className="relative flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#E7E5E0] bg-white text-[#1A1A18] transition-colors hover:bg-[#F9F8F6]"
-          aria-label="Notifications"
-        >
-          <BellIcon className="h-4 w-4" />
-        </button>
-
+        <NotificationsBell items={notifications} unreadCount={unreadCount} />
         <UserMenu
           userDisplayName={userDisplayName}
           userEmail={userEmail}

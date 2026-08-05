@@ -33,6 +33,10 @@ model Profile {
   assignedCards Card[]            @relation("CardAssignee")
   authoredCards Card[]            @relation("CardCreatedBy")
   comments      Comment[]
+  activities    Activity[]        @relation("ActivityActor")
+  targetedInActivities Activity[] @relation("ActivityTargetUser")
+  receivedNotifications Notification[] @relation("NotificationRecipient")
+  sentNotifications     Notification[] @relation("NotificationActor")
 
   @@map("profiles")
 }
@@ -53,11 +57,12 @@ model Workspace {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  members  WorkspaceMember[]
-  boards   Board[]
-  cards    Card[]
-  labels   Label[]
-  sequence WorkspaceCardSequence?
+  members    WorkspaceMember[]
+  boards     Board[]
+  cards      Card[]
+  labels     Label[]
+  activities Activity[]
+  sequence   WorkspaceCardSequence?
 
   @@map("workspaces")
 }
@@ -95,9 +100,11 @@ model Board {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdBy Profile   @relation("BoardCreatedBy", fields: [createdById], references: [id])
-  lists     List[]
+  workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy     Profile        @relation("BoardCreatedBy", fields: [createdById], references: [id])
+  lists         List[]
+  activities    Activity[]
+  notifications Notification[]
 
   @@index([workspaceId])
   @@map("boards")
@@ -155,11 +162,56 @@ model Card {
   comments       Comment[]
   labels         CardLabel[]
   checklistItems CardChecklistItem[]
+  activities     Activity[]
+  notifications  Notification[]
 
   @@unique([workspaceId, number])
   @@index([listId, position])
   @@index([assigneeId])
   @@map("cards")
+}
+
+model Activity {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspaceId  String   @map("workspace_id") @db.Uuid
+  actorId      String?  @map("actor_id") @db.Uuid
+  type         String
+  boardId      String?  @map("board_id") @db.Uuid
+  cardId       String?  @map("card_id") @db.Uuid
+  targetUserId String?  @map("target_user_id") @db.Uuid
+  meta         Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  workspace  Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  actor      Profile?  @relation("ActivityActor", fields: [actorId], references: [id], onDelete: SetNull)
+  board      Board?    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  card       Card?     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  targetUser Profile?  @relation("ActivityTargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt(sort: Desc)])
+  @@index([cardId, createdAt(sort: Desc)])
+  @@index([actorId, createdAt(sort: Desc)])
+  @@map("activities")
+}
+
+model Notification {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  recipientId String    @map("recipient_id") @db.Uuid
+  actorId     String?   @map("actor_id") @db.Uuid
+  type        String
+  boardId     String?   @map("board_id") @db.Uuid
+  cardId      String?   @map("card_id") @db.Uuid
+  message     String
+  readAt      DateTime? @map("read_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  recipient Profile  @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor     Profile? @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+  board     Board?   @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  card      Card?    @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, createdAt(sort: Desc)])
+  @@map("notifications")
 }
 
 model CardChecklistItem {

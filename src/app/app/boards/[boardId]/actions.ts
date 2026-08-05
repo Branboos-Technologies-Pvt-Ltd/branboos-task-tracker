@@ -6,6 +6,7 @@ import { CardPriority } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/auth";
 import { canDeleteList, type WorkspaceRole } from "@/lib/permissions";
+import { createNotification, logActivity } from "@/lib/activity.server";
 
 async function assertBoardAccess(boardId: string) {
   const { workspace, profile, role } = await requireProfile();
@@ -16,7 +17,9 @@ async function assertBoardAccess(boardId: string) {
   return {
     board,
     profileId: profile.id,
+    profileName: profile.fullName?.trim() || profile.email.split("@")[0],
     workspaceId: workspace.id,
+    workspacePrefix: workspace.prefix,
     role: role as WorkspaceRole,
   };
 }
@@ -26,7 +29,7 @@ const listSchema = z.object({
 });
 
 export async function createList(boardId: string, formData: FormData) {
-  const { profileId } = await assertBoardAccess(boardId);
+  const { profileId, workspaceId } = await assertBoardAccess(boardId);
   const parsed = listSchema.safeParse({ name: formData.get("name") });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -37,13 +40,21 @@ export async function createList(boardId: string, formData: FormData) {
   });
   const position = (last?.position ?? 0) + 1000;
 
-  await prisma.list.create({
+  const created = await prisma.list.create({
     data: {
       boardId,
       name: parsed.data.name,
       position,
       createdById: profileId,
     },
+  });
+
+  await logActivity({
+    workspaceId,
+    actorId: profileId,
+    type: "list.created",
+    boardId,
+    meta: { listName: created.name },
   });
 
   revalidatePath(`/app/boards/${boardId}`);
@@ -69,14 +80,14 @@ export async function createCard(
   });
   const position = (last?.position ?? 0) + 1000;
 
-  await prisma.$transaction(async (tx) => {
+  const created = await prisma.$transaction(async (tx) => {
     const seq = await tx.workspaceCardSequence.upsert({
       where: { workspaceId },
       update: { lastNumber: { increment: 1 } },
       create: { workspaceId, lastNumber: 1 },
     });
 
-    await tx.card.create({
+    return tx.card.create({
       data: {
         workspaceId,
         number: seq.lastNumber,
@@ -86,6 +97,18 @@ export async function createCard(
         createdById: profileId,
       },
     });
+  });
+
+  await logActivity({
+    workspaceId,
+    actorId: profileId,
+    type: "card.created",
+    boardId,
+    cardId: created.id,
+    meta: {
+      cardKey: `${(await prisma.workspace.findUnique({ where: { id: workspaceId }, select: { prefix: true } }))?.prefix ?? ""}-${created.number}`,
+      title: created.title,
+    },
   });
 
   revalidatePath(`/app/boards/${boardId}`);
@@ -101,9 +124,20 @@ export async function moveCard(
   boardId: string,
   input: z.input<typeof moveCardSchema>,
 ) {
-  await assertBoardAccess(boardId);
+  const { profileId, workspaceId, workspacePrefix } =
+    await assertBoardAccess(boardId);
   const parsed = moveCardSchema.safeParse(input);
   if (!parsed.success) return { error: "Invalid move" };
+
+  const before = await prisma.card.findUnique({
+    where: { id: parsed.data.cardId },
+    select: {
+      listId: true,
+      number: true,
+      title: true,
+      list: { select: { name: true } },
+    },
+  });
 
   await prisma.card.update({
     where: { id: parsed.data.cardId },
@@ -112,6 +146,27 @@ export async function moveCard(
       position: parsed.data.targetPosition,
     },
   });
+
+  // Only log cross-list moves (within-list reorders are noise).
+  if (before && before.listId !== parsed.data.targetListId) {
+    const toList = await prisma.list.findUnique({
+      where: { id: parsed.data.targetListId },
+      select: { name: true },
+    });
+    await logActivity({
+      workspaceId,
+      actorId: profileId,
+      type: "card.moved",
+      boardId,
+      cardId: parsed.data.cardId,
+      meta: {
+        cardKey: `${workspacePrefix}-${before.number}`,
+        title: before.title,
+        fromList: before.list.name,
+        toList: toList?.name ?? "",
+      },
+    });
+  }
 
   revalidatePath(`/app/boards/${boardId}`);
 }
@@ -163,6 +218,14 @@ export async function updateCard(
   const assigneeId =
     assigneeRaw && /^[0-9a-f-]{36}$/i.test(assigneeRaw) ? assigneeRaw : null;
 
+  const { profileId, profileName, workspaceId, workspacePrefix } =
+    await assertBoardAccess(boardId);
+
+  const before = await prisma.card.findUnique({
+    where: { id: cardId },
+    select: { assigneeId: true, number: true, title: true },
+  });
+
   try {
     await prisma.card.update({
       where: { id: cardId },
@@ -183,17 +246,59 @@ export async function updateCard(
     };
   }
 
+  // Assignment changed → activity + notification for the new assignee
+  if (before && before.assigneeId !== assigneeId && assigneeId) {
+    const cardKey = `${workspacePrefix}-${before.number}`;
+    await logActivity({
+      workspaceId,
+      actorId: profileId,
+      type: "card.assigned",
+      boardId,
+      cardId,
+      targetUserId: assigneeId,
+      meta: { cardKey, title },
+    });
+    await createNotification({
+      recipientId: assigneeId,
+      actorId: profileId,
+      type: "assigned",
+      boardId,
+      cardId,
+      message: `${profileName} assigned you to ${cardKey} · ${title}`,
+    });
+  }
+
   revalidatePath(`/app/boards/${boardId}`);
 }
 
 export async function deleteCard(boardId: string, cardId: string) {
-  await assertBoardAccess(boardId);
+  const { profileId, workspaceId, workspacePrefix } =
+    await assertBoardAccess(boardId);
+
+  const before = await prisma.card.findUnique({
+    where: { id: cardId },
+    select: { number: true, title: true },
+  });
+
   await prisma.card.delete({ where: { id: cardId } });
+
+  if (before) {
+    await logActivity({
+      workspaceId,
+      actorId: profileId,
+      type: "card.deleted",
+      boardId,
+      meta: {
+        cardKey: `${workspacePrefix}-${before.number}`,
+        title: before.title,
+      },
+    });
+  }
   revalidatePath(`/app/boards/${boardId}`);
 }
 
 export async function deleteList(boardId: string, listId: string) {
-  const { profileId, role } = await assertBoardAccess(boardId);
+  const { profileId, role, workspaceId } = await assertBoardAccess(boardId);
 
   const list = await prisma.list.findFirst({
     where: { id: listId, boardId },
@@ -220,7 +325,22 @@ export async function deleteList(boardId: string, listId: string) {
     };
   }
 
+  const listBefore = await prisma.list.findUnique({
+    where: { id: listId },
+    select: { name: true },
+  });
+
   await prisma.list.delete({ where: { id: listId } });
+
+  if (listBefore) {
+    await logActivity({
+      workspaceId,
+      actorId: profileId,
+      type: "list.deleted",
+      boardId,
+      meta: { listName: listBefore.name },
+    });
+  }
   revalidatePath(`/app/boards/${boardId}`);
 }
 
@@ -346,7 +466,8 @@ export async function addComment(
   cardId: string,
   formData: FormData,
 ) {
-  const { profileId } = await assertBoardAccess(boardId);
+  const { profileId, profileName, workspaceId, workspacePrefix } =
+    await assertBoardAccess(boardId);
   const parsed = commentSchema.safeParse(formData.get("body"));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -357,6 +478,50 @@ export async function addComment(
       body: parsed.data,
     },
   });
+
+  const card = await prisma.card.findUnique({
+    where: { id: cardId },
+    select: { number: true, title: true, assigneeId: true, createdById: true },
+  });
+
+  if (card) {
+    const cardKey = `${workspacePrefix}-${card.number}`;
+    await logActivity({
+      workspaceId,
+      actorId: profileId,
+      type: "card.commented",
+      boardId,
+      cardId,
+      meta: { cardKey, title: card.title, excerpt: parsed.data.slice(0, 140) },
+    });
+    // Notify assignee and (if different) the creator that a comment landed.
+    const notified = new Set<string>();
+    if (card.assigneeId && card.assigneeId !== profileId) {
+      notified.add(card.assigneeId);
+      await createNotification({
+        recipientId: card.assigneeId,
+        actorId: profileId,
+        type: "commented",
+        boardId,
+        cardId,
+        message: `${profileName} commented on ${cardKey} · ${card.title}`,
+      });
+    }
+    if (
+      card.createdById !== profileId &&
+      !notified.has(card.createdById)
+    ) {
+      await createNotification({
+        recipientId: card.createdById,
+        actorId: profileId,
+        type: "commented",
+        boardId,
+        cardId,
+        message: `${profileName} commented on ${cardKey} · ${card.title}`,
+      });
+    }
+  }
+
   revalidatePath(`/app/boards/${boardId}`);
 }
 

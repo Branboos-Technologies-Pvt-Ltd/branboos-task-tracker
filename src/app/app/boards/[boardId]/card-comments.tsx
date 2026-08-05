@@ -66,28 +66,33 @@ export function CardComments({
         )}
       </div>
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          submit();
-        }}
-        className="mt-3 flex gap-2"
-      >
+      {/* NOT a <form> — rendered inside the card-dialog's outer form; HTML
+          forbids nesting. Submit via button onClick + Enter key, both stopping
+          propagation so the outer form's Save doesn't fire. */}
+      <div className="mt-3 flex gap-2">
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              e.stopPropagation();
+              submit();
+            }
+          }}
           placeholder="Add a comment..."
           disabled={pending}
           className="flex-1 rounded-lg border border-[#E7E5E0] bg-[#F9F8F6] px-3.5 py-2.5 text-sm outline-none focus:border-[#00ACC1]"
         />
         <button
-          type="submit"
+          type="button"
+          onClick={submit}
           disabled={pending || !draft.trim()}
           className="rounded-lg bg-[#1A1A18] px-4 py-2.5 text-[13px] font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {pending ? "Posting..." : "Comment"}
         </button>
-      </form>
+      </div>
     </section>
   );
 }

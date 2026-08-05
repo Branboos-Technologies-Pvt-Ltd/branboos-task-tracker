@@ -179,7 +179,7 @@ function AddItemForm({
   const [open, setOpen] = useState(!hasItems);
   const [text, setText] = useState("");
   const [pending, startTransition] = useTransition();
-  const formRef = useRef<HTMLFormElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   function submit() {
     const trimmed = text.trim();
@@ -189,7 +189,7 @@ function AddItemForm({
     startTransition(async () => {
       await addChecklistItem(boardId, cardId, fd);
       setText("");
-      formRef.current?.querySelector("input")?.focus();
+      inputRef.current?.focus();
     });
   }
 
@@ -206,20 +206,24 @@ function AddItemForm({
     );
   }
 
+  // NOTE: NOT a <form> — this widget is rendered inside the card-dialog's outer
+  // form and HTML forbids nested forms. We handle submit via button onClick +
+  // Enter key on the input, both preventing bubbling to the outer form.
   return (
-    <form
-      ref={formRef}
-      onSubmit={(e) => {
-        e.preventDefault();
-        submit();
-      }}
-      className="mt-2 flex items-center gap-2"
-    >
+    <div className="mt-2 flex items-center gap-2">
       <input
+        ref={inputRef}
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            e.stopPropagation();
+            submit();
+          }
           if (e.key === "Escape") {
+            e.preventDefault();
+            e.stopPropagation();
             setText("");
             setOpen(hasItems ? false : true);
           }
@@ -230,11 +234,12 @@ function AddItemForm({
         className="flex-1 rounded-md border border-[#E7E5E0] bg-[#F9F8F6] px-2.5 py-1.5 text-sm outline-none focus:border-[#00ACC1]"
       />
       <button
-        type="submit"
+        type="button"
+        onClick={submit}
         disabled={pending || !text.trim()}
         className="rounded-md bg-[#1A1A18] px-3 py-1.5 text-xs font-bold text-white hover:opacity-90 disabled:opacity-50"
       >
-        Add
+        {pending ? "Adding..." : "Add"}
       </button>
       {hasItems && (
         <button
@@ -248,6 +253,6 @@ function AddItemForm({
           Cancel
         </button>
       )}
-    </form>
+    </div>
   );
 }

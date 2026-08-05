@@ -186,6 +186,7 @@ export function BoardView({
 
       <div className="scroll-hide -mx-6 overflow-x-auto px-6 pb-3 md:-mx-8 md:px-8">
         <DndContext
+          id="board-dnd"
           sensors={sensors}
           collisionDetection={closestCorners}
           onDragStart={handleDragStart}

@@ -3,7 +3,8 @@ import { formatDistanceToNow, isPast, isToday, differenceInCalendarDays } from "
 import { LayoutIcon } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/auth";
-import { boardDot } from "@/lib/members";
+import { avatarSwatch, boardDot } from "@/lib/members";
+import { activityText, type ActivityRow } from "@/lib/activity-render";
 import { BoardsSearch } from "./boards-search";
 import { NewBoardDialog } from "./new-board-dialog";
 
@@ -56,7 +57,16 @@ export default async function AppHome({
   const soonCutoff = new Date();
   soonCutoff.setDate(soonCutoff.getDate() + 3);
 
-  const [boards, totalCount, statOverdue, statDueSoon, statCompleted, statTotal, myTasks] =
+  const [
+    boards,
+    totalCount,
+    statOverdue,
+    statDueSoon,
+    statCompleted,
+    statTotal,
+    myTasks,
+    recentActivities,
+  ] =
     await Promise.all([
       prisma.board.findMany({
         where,
@@ -105,7 +115,31 @@ export default async function AppHome({
         take: 5,
         include: { list: { include: { board: true } } },
       }),
+      prisma.activity.findMany({
+        where: { workspaceId: workspace.id },
+        orderBy: { createdAt: "desc" },
+        take: 12,
+        include: {
+          actor: { select: { id: true, fullName: true, email: true } },
+        },
+      }),
     ]);
+
+  const activityRows: ActivityRow[] = recentActivities.map((a) => ({
+    id: a.id,
+    type: a.type,
+    createdAt: a.createdAt,
+    actorName:
+      a.actor?.fullName?.trim() ||
+      (a.actor?.email ? a.actor.email.split("@")[0] : null),
+    actorEmail: a.actor?.email ?? null,
+    actorInitial: (a.actor?.fullName?.trim() || a.actor?.email || "?")
+      .charAt(0)
+      .toUpperCase(),
+    boardId: a.boardId,
+    cardId: a.cardId,
+    meta: (a.meta ?? null) as Record<string, unknown> | null,
+  }));
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const clampedPage = Math.min(page, totalPages);
@@ -214,10 +248,15 @@ export default async function AppHome({
           )}
         </Panel>
         <Panel title="Recent Activity">
-          <EmptyLine>
-            Activity feed coming soon — we&apos;ll show card moves, assignments,
-            and comments here.
-          </EmptyLine>
+          {activityRows.length === 0 ? (
+            <EmptyLine>Nothing to show yet.</EmptyLine>
+          ) : (
+            <div className="flex flex-col">
+              {activityRows.map((a) => (
+                <ActivityLine key={a.id} row={a} />
+              ))}
+            </div>
+          )}
         </Panel>
       </div>
 
@@ -386,5 +425,35 @@ function Panel({
 function EmptyLine({ children }: { children: React.ReactNode }) {
   return (
     <div className="py-6 text-center text-sm text-[#9B9B94]">{children}</div>
+  );
+}
+
+function ActivityLine({ row }: { row: ActivityRow }) {
+  const swatch = avatarSwatch(row.actorEmail ?? row.id);
+  const Wrapper = row.boardId ? Link : "div";
+  const wrapperProps = row.boardId
+    ? { href: `/app/boards/${row.boardId}` as const }
+    : {};
+
+  return (
+    <Wrapper
+      {...(wrapperProps as { href: `/app/boards/${string}` })}
+      className="flex items-start gap-2.5 border-b border-[#F1F0EC] py-2.5 last:border-b-0 hover:bg-[#FAFAF8]"
+    >
+      <span
+        className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+        style={{ backgroundColor: swatch.bg, color: swatch.text }}
+      >
+        {row.actorInitial}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="text-[12px] leading-snug text-[#1A1A18]">
+          {activityText(row)}
+        </div>
+        <div className="mt-0.5 text-[11px] text-[#9B9B94]">
+          {formatDistanceToNow(row.createdAt, { addSuffix: true })}
+        </div>
+      </div>
+    </Wrapper>
   );
 }

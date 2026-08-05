@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CheckIcon, LayoutGridIcon, UsersIcon } from "lucide-react";
-import { BranBoosLockup } from "@/components/branboos-logo";
-import { buttonVariants } from "@/components/ui/button";
+import { BranBoosMark } from "@/components/branboos-logo";
 
 // If Supabase's magic-link redirect falls back to Site URL (root), the code lands
 // here as `?code=...`. Forward it to /auth/callback so the session gets exchanged.
@@ -21,85 +19,103 @@ export default async function Home({
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-white dark:bg-zinc-950">
-      {/* Subtle brand-gradient washes in the corners */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-40 -right-40 h-96 w-96 rounded-full bg-gradient-to-br from-red-400/25 via-yellow-300/25 to-transparent blur-3xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-gradient-to-tr from-blue-400/25 via-cyan-300/25 to-transparent blur-3xl"
-      />
-
-      <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <BranBoosLockup markSize={40} />
-        <Link
-          href="/login"
-          className={buttonVariants({ variant: "outline", size: "sm" })}
-        >
-          Sign in
-        </Link>
-      </header>
-
-      <main className="relative z-10 mx-auto flex max-w-4xl flex-col items-center gap-8 px-6 pt-16 pb-24 text-center md:pt-24">
-        <div className="flex flex-col gap-4">
-          <p className="text-sm font-semibold tracking-widest text-zinc-500 uppercase">
-            BranBoos Technologies
-          </p>
-          <h1 className="text-5xl font-bold tracking-tight text-zinc-900 md:text-6xl dark:text-zinc-50">
-            Team tasks, in{" "}
-            <span className="bg-gradient-to-r from-red-500 via-orange-500 via-yellow-400 via-lime-500 via-cyan-400 to-blue-500 bg-clip-text text-transparent">
-              one place
-            </span>
-          </h1>
-          <p className="mx-auto max-w-xl text-lg text-zinc-600 dark:text-zinc-400">
-            A simple shared Kanban for the whole BranBoos team — boards,
-            assignees, due dates, no clutter.
-          </p>
+    <div className="min-h-screen bg-[#FAFAF8] text-[#1A1A18]">
+      {/* Top nav bar */}
+      <header className="flex h-[76px] items-center justify-between border-b border-[#E7E5E0] bg-white px-8 md:px-12">
+        <div className="flex items-center gap-3">
+          <BranBoosMark size={40} />
+          <div>
+            <div className="font-heading text-[19px] font-extrabold leading-none">
+              BranBoos
+            </div>
+            <div className="mt-1 h-[3px] w-14 rounded-full bg-gradient-to-r from-[#F4511E] via-[#FDD835] to-[#00ACC1]" />
+          </div>
         </div>
-
-        <div className="flex flex-wrap items-center justify-center gap-3">
+        <div className="flex items-center gap-5">
           <Link
             href="/login"
-            className="inline-flex h-11 items-center justify-center rounded-lg bg-gradient-to-r from-red-500 via-orange-500 via-lime-500 to-blue-500 px-6 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-95"
+            className="text-sm font-semibold text-[#1A1A18] hover:text-[#3F3F3A]"
           >
             Sign in
           </Link>
           <Link
-            href="/login"
-            className={buttonVariants({ variant: "outline", size: "lg" })}
+            href="/login?mode=signup"
+            className="rounded-[9px] bg-gradient-to-r from-[#F4511E] via-[#FDD835] to-[#00ACC1] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-95"
           >
-            Create an account
+            Get started
           </Link>
         </div>
+      </header>
 
-        <div className="mt-12 grid w-full grid-cols-1 gap-4 sm:grid-cols-3">
-          <FeatureCard
-            icon={<LayoutGridIcon className="h-5 w-5" />}
-            title="Kanban boards"
-            body="Drag cards through Todo, In Progress, Done. Everyone sees the same board in real time."
-          />
-          <FeatureCard
-            icon={<UsersIcon className="h-5 w-5" />}
-            title="Assign teammates"
-            body="Give cards owners, dates, priority, and component tags. My Cards page shows what's on your plate."
-          />
-          <FeatureCard
-            icon={<CheckIcon className="h-5 w-5" />}
-            title="One-click sign in"
-            body="Password login with browser autofill, or magic-link email as a backup."
-          />
+      {/* Hero */}
+      <section className="mx-auto max-w-[760px] px-6 pt-24 pb-16 text-center md:pt-30">
+        <div className="mb-5 text-xs font-bold tracking-[2px] text-[#9B9B94] uppercase">
+          BranBoos Technologies
         </div>
-      </main>
-
-      <footer className="relative z-10 border-t border-zinc-200 py-6 dark:border-zinc-800">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 text-xs text-zinc-500">
-          <span>© {new Date().getFullYear()} BranBoos Technologies Pvt. Ltd.</span>
-          <Link href="/login" className="hover:text-zinc-900 dark:hover:text-zinc-100">
-            Sign in →
+        <h1 className="font-heading text-5xl leading-[1.08] font-bold tracking-tight md:text-6xl">
+          Team tasks, in{" "}
+          <span className="bg-gradient-to-r from-[#F4511E] via-[#FDD835] via-[#8BC34A] to-[#00ACC1] bg-clip-text text-transparent">
+            one place
+          </span>
+        </h1>
+        <p className="mt-6 text-lg leading-relaxed text-[#6B6B66]">
+          A simple shared Kanban for the whole BranBoos team — boards,
+          assignees, due dates, and checklists, with no clutter.
+        </p>
+        <div className="mt-9 flex items-center justify-center gap-5">
+          <Link
+            href="/login"
+            className="rounded-[10px] bg-gradient-to-r from-[#F4511E] via-[#FDD835] to-[#00ACC1] px-7 py-3.5 text-[15px] font-bold text-white shadow-sm transition-opacity hover:opacity-95"
+          >
+            Sign in
+          </Link>
+          <Link
+            href="/login?mode=signup"
+            className="text-[15px] font-semibold text-[#1A1A18] hover:text-[#3F3F3A]"
+          >
+            Create an account →
           </Link>
         </div>
+      </section>
+
+      {/* Feature grid */}
+      <section className="mx-auto grid max-w-[1000px] grid-cols-1 gap-6 px-6 pb-30 md:grid-cols-3">
+        <FeatureCard
+          title="Kanban boards"
+          body="Drag cards through Todo, In Progress, and Done. Everyone sees the same board update in real time."
+          icon={
+            <div className="flex items-end gap-[3px]">
+              <div className="h-[10px] w-[5px] rounded-sm bg-white" />
+              <div className="h-[18px] w-[5px] rounded-sm bg-white" />
+              <div className="h-[14px] w-[5px] rounded-sm bg-white" />
+            </div>
+          }
+        />
+        <FeatureCard
+          title="Assign teammates"
+          body="Give cards owners, due dates, priority, and labels. My Tasks shows what's on your plate."
+          icon={
+            <div className="flex">
+              <div className="h-4 w-4 rounded-full bg-white" />
+              <div className="-ml-1.5 h-4 w-4 rounded-full bg-white/60" />
+            </div>
+          }
+        />
+        <FeatureCard
+          title="One-click sign in"
+          body="Password login with autofill, or a magic-link email as a backup."
+          icon={
+            <div className="relative h-[18px] w-[18px]">
+              <div className="absolute top-[9px] left-[1px] h-[3px] w-[9px] rotate-45 rounded bg-white" />
+              <div className="absolute top-[6px] left-[5px] h-[3px] w-[14px] -rotate-45 rounded bg-white" />
+            </div>
+          }
+        />
+      </section>
+
+      {/* Footer */}
+      <footer className="flex items-center justify-center gap-2.5 border-t border-[#E7E5E0] px-12 py-8 text-[13px] text-[#9B9B94]">
+        <BranBoosMark size={20} />© {new Date().getFullYear()} BranBoos Technologies Pvt. Ltd.
       </footer>
     </div>
   );
@@ -115,14 +131,12 @@ function FeatureCard({
   body: string;
 }) {
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-zinc-200 bg-white p-5 text-left shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-red-500 via-orange-400 to-blue-500 text-white">
+    <div className="rounded-2xl border border-[#E7E5E0] bg-white p-7">
+      <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#F4511E] to-[#00ACC1]">
         {icon}
       </div>
-      <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-        {title}
-      </h3>
-      <p className="text-xs text-zinc-600 dark:text-zinc-400">{body}</p>
+      <h3 className="font-heading mb-2 text-base font-bold">{title}</h3>
+      <p className="text-sm leading-relaxed text-[#6B6B66]">{body}</p>
     </div>
   );
 }

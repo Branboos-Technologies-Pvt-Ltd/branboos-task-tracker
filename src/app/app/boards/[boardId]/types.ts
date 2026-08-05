@@ -21,125 +21,82 @@ export type ListData = {
   cards: CardData[];
 };
 
+// Priority pill styling — flat pastel background + darker text (matches design).
 export const PRIORITY_STYLES: Record<
   CardPriorityValue,
-  { label: string; bar: string; tag: string }
+  { label: string; bg: string; color: string; dot: string }
 > = {
-  low: {
-    label: "Low",
-    bar: "bg-slate-400",
-    tag: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
-  },
-  medium: {
-    label: "Medium",
-    bar: "bg-sky-400",
-    tag: "bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-300",
-  },
-  high: {
-    label: "High",
-    bar: "bg-amber-400",
-    tag: "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300",
-  },
-  urgent: {
-    label: "Urgent",
-    bar: "bg-red-500",
-    tag: "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300",
-  },
+  low: { label: "Low", bg: "#E0E7FF", color: "#3730A3", dot: "#64748B" },
+  medium: { label: "Medium", bg: "#FEF3C7", color: "#B45309", dot: "#F59E0B" },
+  high: { label: "High", bg: "#FEE2E2", color: "#B91C1C", dot: "#F97316" },
+  urgent: { label: "Urgent", bg: "#FEE2E2", color: "#991B1B", dot: "#DC2626" },
 };
 
-// Deterministic hash → color for the component tag, so "Frontend" is always the
-// same colour regardless of which board or session you view it on.
-const COMPONENT_PALETTE = [
-  "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300",
-  "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300",
-  "bg-pink-100 text-pink-700 dark:bg-pink-900/50 dark:text-pink-300",
-  "bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300",
-  "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300",
-  "bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-300",
-  "bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/50 dark:text-fuchsia-300",
-  "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-300",
+// Component/label tag palette — matches design's label colors.
+const COMPONENT_PALETTE: { bg: string; color: string }[] = [
+  { bg: "#EDE9FE", color: "#6D28D9" }, // violet (Design)
+  { bg: "#DBEAFE", color: "#1D4ED8" }, // blue (Frontend)
+  { bg: "#CCFBF1", color: "#0F766E" }, // teal (Backend)
+  { bg: "#FEE2E2", color: "#B91C1C" }, // red (Bug)
+  { bg: "#F1F5F9", color: "#475569" }, // slate (Docs)
+  { bg: "#FCE7F3", color: "#BE185D" }, // pink (Marketing)
+  { bg: "#FEF3C7", color: "#92400E" }, // amber
+  { bg: "#DCFCE7", color: "#166534" }, // green
 ];
 
-export function componentColor(name: string): string {
+export function componentColor(name: string): { bg: string; color: string } {
+  // Named labels get semantic colors so "Frontend" is always blue etc.
+  const named: Record<string, number> = {
+    design: 0,
+    frontend: 1,
+    backend: 2,
+    bug: 3,
+    docs: 4,
+    marketing: 5,
+  };
+  const key = name.trim().toLowerCase();
+  if (key in named) return COMPONENT_PALETTE[named[key]];
   let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = (hash * 31 + name.charCodeAt(i)) | 0;
-  }
+  for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) | 0;
   return COMPONENT_PALETTE[Math.abs(hash) % COMPONENT_PALETTE.length];
 }
 
-// Column accent themes. Well-known names (Todo, Done, etc.) get semantic colours;
-// custom column names fall back to a deterministic hash over the palette.
-export type ColumnTheme = {
-  accentBar: string;
-  headerDot: string;
-  countBadge: string;
-  droppableBg: string;
+// Column dot color, semantic where possible.
+const NAMED_COLUMN_DOTS: Record<string, string> = {
+  todo: "#8B5CF6",
+  backlog: "#8B5CF6",
+  "to do": "#8B5CF6",
+  "in progress": "#F59E0B",
+  doing: "#F59E0B",
+  wip: "#F59E0B",
+  review: "#3B82F6",
+  "in review": "#3B82F6",
+  qa: "#3B82F6",
+  testing: "#3B82F6",
+  done: "#22C55E",
+  complete: "#22C55E",
+  completed: "#22C55E",
+  shipped: "#22C55E",
+  deployed: "#0EA5E9",
+  blocked: "#EF4444",
+  cancelled: "#EF4444",
 };
 
-const COLUMN_PALETTE: ColumnTheme[] = [
-  {
-    accentBar: "bg-gradient-to-r from-indigo-400 to-violet-500",
-    headerDot: "bg-indigo-500",
-    countBadge: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300",
-    droppableBg: "bg-indigo-100/60 dark:bg-indigo-900/30",
-  },
-  {
-    accentBar: "bg-gradient-to-r from-amber-400 to-orange-500",
-    headerDot: "bg-amber-500",
-    countBadge: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
-    droppableBg: "bg-amber-100/60 dark:bg-amber-900/30",
-  },
-  {
-    accentBar: "bg-gradient-to-r from-emerald-400 to-teal-500",
-    headerDot: "bg-emerald-500",
-    countBadge: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
-    droppableBg: "bg-emerald-100/60 dark:bg-emerald-900/30",
-  },
-  {
-    accentBar: "bg-gradient-to-r from-sky-400 to-blue-500",
-    headerDot: "bg-sky-500",
-    countBadge: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300",
-    droppableBg: "bg-sky-100/60 dark:bg-sky-900/30",
-  },
-  {
-    accentBar: "bg-gradient-to-r from-pink-400 to-rose-500",
-    headerDot: "bg-pink-500",
-    countBadge: "bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300",
-    droppableBg: "bg-pink-100/60 dark:bg-pink-900/30",
-  },
-  {
-    accentBar: "bg-gradient-to-r from-fuchsia-400 to-purple-500",
-    headerDot: "bg-fuchsia-500",
-    countBadge: "bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/40 dark:text-fuchsia-300",
-    droppableBg: "bg-fuchsia-100/60 dark:bg-fuchsia-900/30",
-  },
+const COLUMN_DOT_PALETTE = [
+  "#3B82F6",
+  "#8B5CF6",
+  "#14B8A6",
+  "#F59E0B",
+  "#EF4444",
+  "#22C55E",
+  "#EC4899",
+  "#06B6D4",
 ];
 
-const NAMED_COLUMNS: Record<string, number> = {
-  todo: 0,
-  backlog: 0,
-  "to do": 0,
-  "in progress": 1,
-  doing: 1,
-  wip: 1,
-  review: 3,
-  "in review": 3,
-  qa: 3,
-  testing: 3,
-  done: 2,
-  complete: 2,
-  completed: 2,
-  shipped: 2,
-  deployed: 5,
-  blocked: 4,
-  cancelled: 4,
-};
-
-export function columnTheme(name: string): ColumnTheme {
+export function columnDot(name: string): string {
   const key = name.trim().toLowerCase();
-  if (key in NAMED_COLUMNS) return COLUMN_PALETTE[NAMED_COLUMNS[key]];
+  if (key in NAMED_COLUMN_DOTS) return NAMED_COLUMN_DOTS[key];
   let hash = 0;
   for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) | 0;
-  return COLUMN_PALETTE[Math.abs(hash) % COLUMN_PALETTE.length];
+  return COLUMN_DOT_PALETTE[Math.abs(hash) % COLUMN_DOT_PALETTE.length];
 }

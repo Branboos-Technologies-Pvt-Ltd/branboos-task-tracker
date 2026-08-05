@@ -1,10 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRightIcon } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/auth";
 import { listWorkspaceMembers } from "@/lib/members.server";
-import { boardGradient } from "@/lib/board-gradients";
+import { boardDot } from "@/lib/members";
 import { BoardView } from "./board-view";
 import type { CardPriorityValue } from "./types";
 
@@ -56,39 +54,28 @@ export default async function BoardPage({
   }));
 
   const totalCards = board.lists.reduce((sum, l) => sum + l.cards.length, 0);
-  const gradient = boardGradient(board.name);
+  const dot = boardDot(board.name);
 
   return (
     <div className="flex flex-col gap-5">
-      <nav className="flex items-center gap-1 text-xs text-zinc-500">
-        <Link href="/app" className="hover:text-zinc-900 dark:hover:text-zinc-100">
-          Boards
-        </Link>
-        <ChevronRightIcon className="h-3 w-3" />
-        <span className="text-zinc-700 dark:text-zinc-300">{board.name}</span>
-      </nav>
-
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <span
             aria-hidden
-            className={`h-8 w-1.5 rounded-full bg-gradient-to-b ${gradient}`}
+            className="h-3 w-3 shrink-0 rounded-full"
+            style={{ backgroundColor: dot }}
           />
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-[#1A1A18]">
             {board.name}
           </h1>
         </div>
-        <div className="flex items-center gap-2 text-xs text-zinc-500">
-          <span className="rounded-full bg-white px-2.5 py-1 shadow-sm ring-1 ring-black/5 dark:bg-zinc-900 dark:ring-white/10">
-            <strong className="text-zinc-900 dark:text-zinc-100">
-              {board.lists.length}
-            </strong>{" "}
-            {board.lists.length === 1 ? "list" : "lists"}
-          </span>
-          <span className="rounded-full bg-white px-2.5 py-1 shadow-sm ring-1 ring-black/5 dark:bg-zinc-900 dark:ring-white/10">
-            <strong className="text-zinc-900 dark:text-zinc-100">{totalCards}</strong>{" "}
-            {totalCards === 1 ? "card" : "cards"}
-          </span>
+        <div className="flex items-center gap-2">
+          <Pill>
+            {board.lists.length} {board.lists.length === 1 ? "list" : "lists"}
+          </Pill>
+          <Pill>
+            {totalCards} {totalCards === 1 ? "card" : "cards"}
+          </Pill>
         </div>
       </div>
 
@@ -99,5 +86,13 @@ export default async function BoardPage({
         currentUserId={user.id}
       />
     </div>
+  );
+}
+
+function Pill({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="rounded-full border border-[#E7E5E0] bg-white px-3.5 py-1.5 text-xs font-semibold text-[#1A1A18]">
+      {children}
+    </span>
   );
 }

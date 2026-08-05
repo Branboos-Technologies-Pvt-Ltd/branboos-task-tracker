@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { LogOutIcon } from "lucide-react";
 import { signOut } from "@/app/login/actions";
+import { avatarSwatch } from "@/lib/members";
 
 export function UserMenu({
   userDisplayName,
@@ -15,6 +15,7 @@ export function UserMenu({
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const swatch = avatarSwatch(userEmail);
 
   useEffect(() => {
     if (!open) return;
@@ -37,7 +38,8 @@ export function UserMenu({
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-xs font-semibold text-white shadow-sm outline-none ring-offset-2 ring-offset-white transition-shadow hover:ring-2 hover:ring-zinc-300 focus-visible:ring-2 focus-visible:ring-zinc-500 dark:ring-offset-zinc-900"
+        className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold outline-none transition-shadow hover:ring-2 hover:ring-[#E7E5E0] focus-visible:ring-2 focus-visible:ring-[#00ACC1]"
+        style={{ backgroundColor: swatch.bg, color: swatch.text }}
         aria-label={`Account menu for ${userDisplayName}`}
         aria-expanded={open}
         aria-haspopup="menu"
@@ -48,34 +50,22 @@ export function UserMenu({
       {open && (
         <div
           role="menu"
-          className="absolute top-full right-0 z-50 mt-2 w-60 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
+          className="absolute top-11 right-0 z-50 w-[220px] overflow-hidden rounded-xl border border-[#E7E5E0] bg-white p-2 shadow-[0_12px_30px_rgba(0,0,0,0.12)]"
         >
-          <div className="flex items-center gap-2.5 border-b border-zinc-200 p-3 dark:border-zinc-800">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-xs font-semibold text-white">
-              {userInitials}
+          <div className="mb-1 border-b border-[#F1F0EC] px-3 py-2.5">
+            <div className="text-[13px] font-bold text-[#1A1A18]">
+              {userDisplayName}
             </div>
-            <div className="flex min-w-0 flex-col leading-tight">
-              <span
-                className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-50"
-                title={userDisplayName}
-              >
-                {userDisplayName}
-              </span>
-              <span
-                className="truncate text-xs text-zinc-500"
-                title={userEmail}
-              >
-                {userEmail}
-              </span>
+            <div className="text-[11px] text-[#9B9B94]" title={userEmail}>
+              {userEmail}
             </div>
           </div>
-          <form action={signOut} className="p-1">
+          <form action={signOut}>
             <button
               type="submit"
               role="menuitem"
-              className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              className="w-full rounded-lg px-3 py-2.5 text-left text-[13px] font-medium text-[#DC2626] hover:bg-[#FEF2F2]"
             >
-              <LogOutIcon className="h-4 w-4" />
               Sign out
             </button>
           </form>

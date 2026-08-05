@@ -1,4 +1,4 @@
-import { avatarGradient, memberInitials } from "@/lib/members";
+import { avatarSwatch, memberInitials } from "@/lib/members";
 
 type Size = "xs" | "sm" | "md" | "lg";
 
@@ -19,11 +19,12 @@ export function Avatar({
   className?: string;
 }) {
   const initials = memberInitials(member);
-  const gradient = avatarGradient(member.id || member.email);
+  const swatch = avatarSwatch(member.id || member.email);
 
   return (
     <span
-      className={`inline-flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br font-semibold text-white shadow-sm ring-2 ring-white dark:ring-zinc-900 ${gradient} ${SIZE_CLASSES[size]} ${className ?? ""}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full font-bold ${SIZE_CLASSES[size]} ${className ?? ""}`}
+      style={{ backgroundColor: swatch.bg, color: swatch.text }}
       title={member.fullName ?? member.email}
     >
       {initials}

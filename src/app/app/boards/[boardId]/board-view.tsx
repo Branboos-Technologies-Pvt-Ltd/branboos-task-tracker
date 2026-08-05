@@ -20,9 +20,8 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { CalendarIcon } from "lucide-react";
-import { Avatar } from "@/components/avatar";
 import type { Member } from "@/lib/members";
+import { avatarSwatch, memberInitials } from "@/lib/members";
 import { moveCard } from "./actions";
 import { AddCardForm } from "./add-card-form";
 import { AddListForm } from "./add-list-form";
@@ -35,7 +34,7 @@ import {
 } from "./filter-bar";
 import {
   PRIORITY_STYLES,
-  columnTheme,
+  columnDot,
   componentColor,
   type CardData,
   type ListData,
@@ -130,7 +129,7 @@ export function BoardView({
         ? destList.cards.findIndex((c) => c.id === overId)
         : destList.cards.length;
       reorderedDestCards = [...destList.cards];
-      reorderedDestCards.splice(insertAt = overIndex, 0, {
+      reorderedDestCards.splice((insertAt = overIndex), 0, {
         ...source.card,
         listId: destListId,
       });
@@ -196,7 +195,7 @@ export function BoardView({
           </div>
           <DragOverlay>
             {activeCard && (
-              <div className="w-72 rotate-2">
+              <div className="w-[300px] rotate-2">
                 <CardBody
                   card={activeCard}
                   assignee={
@@ -242,7 +241,7 @@ function ListColumn({
 }) {
   const cardIds = list.cards.map((c) => c.id);
   const { setNodeRef, isOver } = useDroppable({ id: list.id });
-  const theme = columnTheme(list.name);
+  const dot = columnDot(list.name);
   const hiddenByFilter = totalCards - list.cards.length;
 
   return (
@@ -250,45 +249,43 @@ function ListColumn({
       <div
         ref={setNodeRef}
         data-list-id={list.id}
-        className={`flex w-72 shrink-0 flex-col overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/[0.04] transition-colors dark:bg-zinc-900 dark:ring-white/[0.06] ${
-          isOver ? theme.droppableBg : ""
+        className={`flex w-[300px] shrink-0 flex-col rounded-2xl bg-[#F3F2EE] p-3.5 transition-colors ${
+          isOver ? "bg-[#E7E5E0]" : ""
         }`}
       >
-        <div className={`h-1 w-full ${theme.accentBar}`} />
-        <div className="flex flex-col gap-2 p-3">
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2">
-              <span className={`h-2 w-2 rounded-full ${theme.headerDot}`} />
-              <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-                {list.name}
-              </h3>
-            </div>
-            <span
-              className={`rounded-full px-2 py-0.5 text-xs font-semibold ${theme.countBadge}`}
-            >
-              {list.cards.length}
-              {hiddenByFilter > 0 && (
-                <span className="ml-1 opacity-60">/{totalCards}</span>
-              )}
-            </span>
-          </div>
-          <div className="flex min-h-4 flex-col gap-2">
-            {list.cards.map((card) => (
-              <SortableCard
-                key={card.id}
-                card={card}
-                assignee={
-                  card.assigneeId ? membersById.get(card.assigneeId) ?? null : null
-                }
-                onClick={() => onCardClick(card.id)}
-              />
-            ))}
-            {list.cards.length === 0 && (
-              <div className="rounded-md border border-dashed border-zinc-200 py-4 text-center text-xs text-zinc-400 dark:border-zinc-700">
-                {hiddenByFilter > 0 ? "No matching cards" : "Drop cards here"}
-              </div>
+        <div className="mb-3.5 flex items-center gap-2 px-1">
+          <span
+            className="h-2 w-2 shrink-0 rounded-full"
+            style={{ backgroundColor: dot }}
+          />
+          <h3 className="font-heading text-sm font-bold text-[#1A1A18]">
+            {list.name}
+          </h3>
+          <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#6B6B66]">
+            {list.cards.length}
+            {hiddenByFilter > 0 && (
+              <span className="ml-0.5 opacity-60">/{totalCards}</span>
             )}
-          </div>
+          </span>
+        </div>
+        <div className="flex flex-col gap-2.5">
+          {list.cards.map((card) => (
+            <SortableCard
+              key={card.id}
+              card={card}
+              assignee={
+                card.assigneeId ? membersById.get(card.assigneeId) ?? null : null
+              }
+              onClick={() => onCardClick(card.id)}
+            />
+          ))}
+          {list.cards.length === 0 && (
+            <div className="rounded-lg border border-dashed border-[#D4D2CC] py-4 text-center text-xs text-[#9B9B94]">
+              {hiddenByFilter > 0 ? "No matching cards" : "Drop cards here"}
+            </div>
+          )}
+        </div>
+        <div className="mt-2">
           <AddCardForm boardId={boardId} listId={list.id} />
         </div>
       </div>
@@ -326,7 +323,7 @@ function SortableCard({
       }}
       role="button"
       tabIndex={0}
-      className="cursor-grab select-none rounded-md transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 hover:-translate-y-0.5 active:cursor-grabbing"
+      className="cursor-grab select-none rounded-xl transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00ACC1] active:cursor-grabbing"
     >
       <CardBody card={card} assignee={assignee} />
     </div>
@@ -343,67 +340,80 @@ function CardBody({
   elevated?: boolean;
 }) {
   const priorityStyle = card.priority ? PRIORITY_STYLES[card.priority] : null;
+  const componentStyle = card.component ? componentColor(card.component) : null;
   const due = card.dueDate;
   const overdue = due && isPast(due) && !isToday(due);
   const dueSoon = due && !overdue && differenceInCalendarDays(due, new Date()) <= 2;
+  const dueColor = overdue ? "#DC2626" : dueSoon ? "#B45309" : "#6B6B66";
 
   return (
     <div
-      className={`overflow-hidden rounded-md bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100 ${
-        elevated
-          ? "shadow-lg ring-1 ring-black/10 dark:ring-white/20"
-          : "shadow-sm ring-1 ring-black/5 hover:ring-black/10 dark:ring-white/10 dark:hover:ring-white/20"
+      className={`rounded-xl bg-white p-3.5 ${
+        elevated ? "shadow-lg ring-1 ring-black/10" : "hover:shadow-sm"
       }`}
     >
-      <div className="flex">
-        {priorityStyle && <div className={`w-1 shrink-0 ${priorityStyle.bar}`} />}
-        <div className="flex flex-1 flex-col gap-2 p-2.5">
-          <div className="flex items-start justify-between gap-2">
-            <p className="text-sm leading-snug text-zinc-900 dark:text-zinc-100">
-              {card.title}
-            </p>
-            {assignee && <Avatar member={assignee} size="xs" />}
-          </div>
-
-          {(card.component || card.priority) && (
-            <div className="flex flex-wrap gap-1">
-              {card.component && (
-                <span
-                  className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${componentColor(card.component)}`}
-                >
-                  {card.component}
-                </span>
-              )}
-              {priorityStyle && (
-                <span
-                  className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${priorityStyle.tag}`}
-                >
-                  {priorityStyle.label}
-                </span>
-              )}
-            </div>
-          )}
-
-          <div className="flex items-center justify-between gap-1">
-            <span className="font-mono text-[10px] text-zinc-500">{card.key}</span>
-            {due && (
-              <span
-                className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                  overdue
-                    ? "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
-                    : dueSoon
-                    ? "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300"
-                    : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
-                }`}
-              >
-                <CalendarIcon className="h-3 w-3" />
-                {format(due, "MMM d")}
-              </span>
-            )}
-          </div>
+      {/* Labels row */}
+      {componentStyle && card.component && (
+        <div className="mb-1.5 flex flex-wrap gap-1">
+          <span
+            className="inline-block rounded-full px-2 py-0.5 text-[10px] font-bold"
+            style={{ backgroundColor: componentStyle.bg, color: componentStyle.color }}
+          >
+            {card.component}
+          </span>
         </div>
+      )}
+
+      {/* Title */}
+      <div className="mb-2.5 text-sm font-semibold leading-snug text-[#1A1A18]">
+        {card.title}
+      </div>
+
+      {/* Meta row */}
+      <div className="mb-2.5 flex flex-wrap items-center gap-2">
+        {priorityStyle && (
+          <span
+            className="inline-block rounded-md px-2 py-0.5 text-[11px] font-bold"
+            style={{ backgroundColor: priorityStyle.bg, color: priorityStyle.color }}
+          >
+            {priorityStyle.label}
+          </span>
+        )}
+        {due && (
+          <span className="text-[11px] font-semibold" style={{ color: dueColor }}>
+            {format(due, "MMM d")}
+          </span>
+        )}
+        <span className="ml-auto font-mono text-[10px] text-[#9B9B94]">
+          {card.key}
+        </span>
+      </div>
+
+      {/* Assignee — right aligned */}
+      <div className="flex justify-end">
+        {assignee ? (
+          <AssigneeAvatar assignee={assignee} />
+        ) : (
+          <div className="flex h-6 w-6 items-center justify-center rounded-full border border-dashed border-[#D4D2CC] text-[10px] text-[#9B9B94]">
+            —
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+function AssigneeAvatar({ assignee }: { assignee: Member }) {
+  const swatch = avatarSwatch(assignee.id || assignee.email);
+  const initials = memberInitials(assignee);
+  return (
+    <span
+      className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold"
+      style={{ backgroundColor: swatch.bg, color: swatch.text }}
+      title={assignee.fullName ?? assignee.email}
+    >
+      {initials}
+    </span>
   );
 }
 

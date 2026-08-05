@@ -29,7 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   ]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-zinc-100 dark:from-zinc-950 dark:to-zinc-900">
+    <div className="min-h-screen bg-[#FAFAF8]">
       <div className="flex min-h-screen">
         <Sidebar
           workspaceName={workspace.name}
@@ -44,7 +44,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             userEmail={email}
             userInitials={initials}
           />
-          <main className="min-w-0 flex-1 px-6 py-6 md:px-8 md:py-8">
+          <main className="min-w-0 flex-1 px-6 py-8 md:px-8">
             {!profile.fullName && <NamePrompt />}
             {children}
           </main>

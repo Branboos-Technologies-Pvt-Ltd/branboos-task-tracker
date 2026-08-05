@@ -1,12 +1,17 @@
 import { ImageResponse } from "next/og";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
-// App icon (favicon) — the BranBoos rocket badge. Next.js serves this at /icon.
-// Using ImageResponse means we render the same SVG design at any resolution
-// the browser or OS asks for.
+// App icon (favicon). Renders the real BranBoos rocket badge PNG so it matches
+// the brand exactly — no SVG approximation.
 export const size = { width: 64, height: 64 };
 export const contentType = "image/png";
 
 export default function Icon() {
+  const iconPath = join(process.cwd(), "public", "brand", "branboos-icon.png");
+  const iconData = readFileSync(iconPath);
+  const iconBase64 = `data:image/png;base64,${iconData.toString("base64")}`;
+
   return new ImageResponse(
     (
       <div
@@ -16,17 +21,17 @@ export default function Icon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background:
-            "linear-gradient(135deg, #EF4444 0%, #F97316 25%, #FACC15 50%, #22D3EE 75%, #3B82F6 100%)",
-          borderRadius: 14,
-          color: "white",
-          fontSize: 44,
-          fontWeight: 900,
-          letterSpacing: -2,
-          fontFamily: "system-ui, -apple-system, sans-serif",
+          background: "transparent",
         }}
       >
-        B
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={iconBase64}
+          alt="BranBoos"
+          width={64}
+          height={64}
+          style={{ objectFit: "contain" }}
+        />
       </div>
     ),
     { ...size },

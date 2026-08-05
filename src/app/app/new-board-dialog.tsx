@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -22,13 +21,21 @@ export function NewBoardDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button>New board</Button>} />
+      <DialogTrigger
+        render={
+          <button
+            type="button"
+            className="rounded-[10px] bg-[#1A1A18] px-5 py-2.5 text-[13px] font-bold text-white transition-opacity hover:opacity-90"
+          >
+            New board
+          </button>
+        }
+      />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create a board</DialogTitle>
           <DialogDescription>
-            Boards hold lists of cards. You can create as many as you like — one per
-            project, team, or workflow.
+            Boards hold lists of cards. Create one per project, team, or workflow.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -36,11 +43,8 @@ export function NewBoardDialog() {
             setError(null);
             startTransition(async () => {
               const result = await createBoard(formData);
-              if (result?.error) {
-                setError(result.error);
-              } else {
-                setOpen(false);
-              }
+              if (result?.error) setError(result.error);
+              else setOpen(false);
             });
           }}
           className="flex flex-col gap-3"
@@ -60,9 +64,13 @@ export function NewBoardDialog() {
             )}
           </div>
           <DialogFooter>
-            <Button type="submit" disabled={pending}>
+            <button
+              type="submit"
+              disabled={pending}
+              className="rounded-[10px] bg-[#1A1A18] px-5 py-2.5 text-[13px] font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+            >
               {pending ? "Creating..." : "Create board"}
-            </Button>
+            </button>
           </DialogFooter>
         </form>
       </DialogContent>

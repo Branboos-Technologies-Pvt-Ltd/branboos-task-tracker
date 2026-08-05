@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createList } from "./actions";
 
@@ -16,7 +15,7 @@ export function AddListForm({ boardId }: { boardId: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex h-11 w-72 shrink-0 items-center justify-center rounded-xl border-2 border-dashed border-zinc-300 bg-white/60 px-3 text-sm font-medium text-zinc-600 transition-colors hover:border-zinc-400 hover:bg-white hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+        className="flex h-11 w-[300px] shrink-0 items-center justify-center rounded-2xl border-2 border-dashed border-[#D4D2CC] px-3 text-sm font-semibold text-[#6B6B66] transition-colors hover:border-[#9B9B94] hover:bg-white hover:text-[#1A1A18]"
       >
         + Add another list
       </button>
@@ -30,15 +29,14 @@ export function AddListForm({ boardId }: { boardId: string }) {
         setError(null);
         startTransition(async () => {
           const result = await createList(boardId, formData);
-          if (result?.error) {
-            setError(result.error);
-          } else {
+          if (result?.error) setError(result.error);
+          else {
             formRef.current?.reset();
             setOpen(false);
           }
         });
       }}
-      className="flex w-72 shrink-0 flex-col gap-2 rounded-xl bg-white p-3 shadow-sm ring-1 ring-black/[0.04] dark:bg-zinc-900 dark:ring-white/[0.06]"
+      className="flex w-[300px] shrink-0 flex-col gap-2 rounded-2xl bg-[#F3F2EE] p-3.5"
     >
       <Input
         name="name"
@@ -50,22 +48,25 @@ export function AddListForm({ boardId }: { boardId: string }) {
           if (e.key === "Escape") setOpen(false);
         }}
       />
-      {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p className="text-xs text-red-600">{error}</p>}
       <div className="flex items-center gap-2">
-        <Button type="submit" size="sm" disabled={pending}>
+        <button
+          type="submit"
+          disabled={pending}
+          className="rounded-lg bg-[#1A1A18] px-3.5 py-1.5 text-[13px] font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+        >
           {pending ? "Adding..." : "Add list"}
-        </Button>
-        <Button
+        </button>
+        <button
           type="button"
-          size="sm"
-          variant="ghost"
           onClick={() => {
             setOpen(false);
             setError(null);
           }}
+          className="rounded-lg px-3 py-1.5 text-[13px] font-semibold text-[#6B6B66] hover:bg-white hover:text-[#1A1A18]"
         >
           Cancel
-        </Button>
+        </button>
       </div>
     </form>
   );

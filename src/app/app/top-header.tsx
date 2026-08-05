@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronRightIcon } from "lucide-react";
+import { BellIcon } from "lucide-react";
 import { UserMenu } from "./user-menu";
 
 const ROUTE_LABELS: { match: RegExp; label: string }[] = [
@@ -32,27 +32,38 @@ export function TopHeader({
   const section = currentSection(pathname);
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-zinc-200 bg-white/85 px-4 backdrop-blur md:px-6 dark:border-zinc-800 dark:bg-zinc-900/85">
-      <div className="flex items-center gap-2 pl-12 text-sm md:pl-0">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[#E7E5E0] bg-white px-6 md:px-8">
+      <div className="flex items-center gap-1 pl-11 text-sm md:pl-0">
         <Link
           href="/app"
-          className="font-semibold text-zinc-900 hover:text-zinc-700 dark:text-zinc-50 dark:hover:text-zinc-300"
+          className="text-[#9B9B94] hover:text-[#1A1A18]"
         >
           {workspaceName}
         </Link>
         {section && (
           <>
-            <ChevronRightIcon className="h-3.5 w-3.5 text-zinc-400" />
-            <span className="text-zinc-600 dark:text-zinc-400">{section}</span>
+            <span className="mx-1 text-[#9B9B94]">/</span>
+            <span className="font-semibold text-[#1A1A18]">{section}</span>
           </>
         )}
       </div>
 
-      <UserMenu
-        userDisplayName={userDisplayName}
-        userEmail={userEmail}
-        userInitials={userInitials}
-      />
+      <div className="flex items-center gap-3.5">
+        {/* Notification bell — visual placeholder until we wire real notifications */}
+        <button
+          type="button"
+          className="relative flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#E7E5E0] bg-white text-[#1A1A18] transition-colors hover:bg-[#F9F8F6]"
+          aria-label="Notifications"
+        >
+          <BellIcon className="h-4 w-4" />
+        </button>
+
+        <UserMenu
+          userDisplayName={userDisplayName}
+          userEmail={userEmail}
+          userInitials={userInitials}
+        />
+      </div>
     </header>
   );
 }

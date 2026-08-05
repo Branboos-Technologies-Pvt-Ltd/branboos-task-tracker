@@ -25,12 +25,10 @@ export default async function MyCardsPage() {
   });
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="mx-auto flex max-w-[1000px] flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-          My Cards
-        </h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        <h1 className="font-heading text-2xl font-bold text-[#1A1A18]">My Cards</h1>
+        <p className="mt-1 text-sm text-[#6B6B66]">
           {cards.length === 0
             ? "Nothing assigned to you. Enjoy the quiet."
             : `${cards.length} open card${cards.length === 1 ? "" : "s"} assigned to you across all boards.`}
@@ -42,27 +40,36 @@ export default async function MyCardsPage() {
           {cards.map((card) => {
             const priority = (card.priority ?? null) as CardPriorityValue | null;
             const priStyle = priority ? PRIORITY_STYLES[priority] : null;
-            const overdue = card.dueDate && isPast(card.dueDate) && !isToday(card.dueDate);
+            const componentStyle = card.component
+              ? componentColor(card.component)
+              : null;
+            const overdue =
+              card.dueDate && isPast(card.dueDate) && !isToday(card.dueDate);
             const key = `${workspace.prefix}-${card.number}`;
 
             return (
               <Link
                 key={card.id}
                 href={`/app/boards/${card.list.boardId}`}
-                className="group flex items-center gap-3 overflow-hidden rounded-lg bg-white p-3 shadow-sm ring-1 ring-black/5 transition-colors hover:ring-black/15 dark:bg-zinc-900 dark:ring-white/10 dark:hover:ring-white/20"
+                className="flex items-center gap-3 rounded-xl border border-[#E7E5E0] bg-white p-3.5 transition-shadow hover:shadow-sm"
               >
-                {priStyle && <div className={`h-8 w-1 shrink-0 rounded-sm ${priStyle.bar}`} />}
+                {priStyle && (
+                  <span
+                    className="h-8 w-1 shrink-0 rounded-sm"
+                    style={{ backgroundColor: priStyle.dot }}
+                  />
+                )}
 
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-[10px] font-semibold text-zinc-500">
+                    <span className="font-mono text-[10px] font-semibold text-[#9B9B94]">
                       {key}
                     </span>
-                    <span className="truncate text-sm text-zinc-900 dark:text-zinc-100">
+                    <span className="truncate text-sm font-semibold text-[#1A1A18]">
                       {card.title}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 text-[10px] text-zinc-500">
+                  <div className="flex items-center gap-2 text-[11px] text-[#9B9B94]">
                     <span className="flex items-center gap-1">
                       <LayoutIcon className="h-3 w-3" />
                       {card.list.board.name} · {card.list.name}
@@ -71,27 +78,35 @@ export default async function MyCardsPage() {
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                  {card.component && (
+                  {componentStyle && card.component && (
                     <span
-                      className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${componentColor(card.component)}`}
+                      className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                      style={{
+                        backgroundColor: componentStyle.bg,
+                        color: componentStyle.color,
+                      }}
                     >
                       {card.component}
                     </span>
                   )}
                   {priStyle && (
                     <span
-                      className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${priStyle.tag}`}
+                      className="rounded-md px-2 py-0.5 text-[10px] font-bold"
+                      style={{
+                        backgroundColor: priStyle.bg,
+                        color: priStyle.color,
+                      }}
                     >
                       {priStyle.label}
                     </span>
                   )}
                   {card.dueDate && (
                     <span
-                      className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                        overdue
-                          ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
-                          : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
-                      }`}
+                      className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold"
+                      style={{
+                        backgroundColor: overdue ? "#FEE2E2" : "#F3F2EE",
+                        color: overdue ? "#B91C1C" : "#6B6B66",
+                      }}
                     >
                       <CalendarIcon className="h-3 w-3" />
                       {format(card.dueDate, "MMM d")}

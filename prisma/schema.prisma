@@ -148,17 +148,36 @@ model Card {
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
 
-  workspace Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  list      List        @relation(fields: [listId], references: [id], onDelete: Cascade)
-  assignee  Profile?    @relation("CardAssignee", fields: [assigneeId], references: [id])
-  createdBy Profile     @relation("CardCreatedBy", fields: [createdById], references: [id])
-  comments  Comment[]
-  labels    CardLabel[]
+  workspace      Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  list           List                 @relation(fields: [listId], references: [id], onDelete: Cascade)
+  assignee       Profile?             @relation("CardAssignee", fields: [assigneeId], references: [id])
+  createdBy      Profile              @relation("CardCreatedBy", fields: [createdById], references: [id])
+  comments       Comment[]
+  labels         CardLabel[]
+  checklistItems CardChecklistItem[]
 
   @@unique([workspaceId, number])
   @@index([listId, position])
   @@index([assigneeId])
   @@map("cards")
+}
+
+model CardChecklistItem {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cardId      String    @map("card_id") @db.Uuid
+  text        String
+  done        Boolean   @default(false)
+  position    Float
+  createdById String?   @map("created_by") @db.Uuid
+  doneById    String?   @map("done_by") @db.Uuid
+  doneAt      DateTime? @map("done_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@index([cardId, position])
+  @@map("card_checklist_items")
 }
 
 // Workspace-scoped labels. Replace the single `component` string on Card

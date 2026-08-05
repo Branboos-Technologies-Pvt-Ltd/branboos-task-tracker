@@ -20,7 +20,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { TrashIcon } from "lucide-react";
+import { CheckSquareIcon, MessageSquareIcon, TrashIcon } from "lucide-react";
 import type { Member } from "@/lib/members";
 import { avatarSwatch, memberInitials } from "@/lib/members";
 import { canDeleteList, type WorkspaceRole } from "@/lib/permissions";
@@ -44,6 +44,7 @@ import {
 
 export function BoardView({
   boardId,
+  boardName,
   initialLists,
   members,
   currentUserId,
@@ -51,6 +52,7 @@ export function BoardView({
   availableLabels,
 }: {
   boardId: string;
+  boardName: string;
   initialLists: ListData[];
   members: Member[];
   currentUserId: string;
@@ -169,6 +171,9 @@ export function BoardView({
     openCardId != null
       ? lists.flatMap((l) => l.cards).find((c) => c.id === openCardId) ?? null
       : null;
+  const openCardListName = openCard
+    ? lists.find((l) => l.id === openCard.listId)?.name ?? ""
+    : "";
 
   return (
     <div className="flex flex-col gap-4">
@@ -222,9 +227,13 @@ export function BoardView({
       {openCard && (
         <CardDialog
           boardId={boardId}
+          boardName={boardName}
+          listName={openCardListName}
           card={openCard}
           members={members}
           availableLabels={availableLabels}
+          currentUserId={currentUserId}
+          currentUserRole={currentUserRole}
           open={true}
           onOpenChange={(open) => {
             if (!open) setOpenCardId(null);
@@ -428,6 +437,24 @@ function CardBody({
         {due && (
           <span className="text-[11px] font-semibold" style={{ color: dueColor }}>
             {format(due, "MMM d")}
+          </span>
+        )}
+        {card.checklist.length > 0 && (
+          <span
+            className="inline-flex items-center gap-1 text-[11px] text-[#9B9B94]"
+            title={`${card.checklist.filter((i) => i.done).length} of ${card.checklist.length} done`}
+          >
+            <CheckSquareIcon className="h-3 w-3" />
+            {card.checklist.filter((i) => i.done).length}/{card.checklist.length}
+          </span>
+        )}
+        {card.comments.length > 0 && (
+          <span
+            className="inline-flex items-center gap-1 text-[11px] text-[#9B9B94]"
+            title={`${card.comments.length} comment${card.comments.length === 1 ? "" : "s"}`}
+          >
+            <MessageSquareIcon className="h-3 w-3" />
+            {card.comments.length}
           </span>
         )}
         <span className="ml-auto font-mono text-[10px] text-[#9B9B94]">

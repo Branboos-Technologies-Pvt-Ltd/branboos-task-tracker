@@ -27,6 +27,8 @@ export default async function BoardPage({
               where: { archivedAt: null },
               include: {
                 labels: { include: { label: true } },
+                checklistItems: { orderBy: { position: "asc" } },
+                comments: { orderBy: { createdAt: "asc" } },
               },
             },
           },
@@ -58,6 +60,18 @@ export default async function BoardPage({
         id: cl.label.id,
         name: cl.label.name,
         color: cl.label.color,
+      })),
+      checklist: card.checklistItems.map((it) => ({
+        id: it.id,
+        text: it.text,
+        done: it.done,
+        position: it.position,
+      })),
+      comments: card.comments.map((c) => ({
+        id: c.id,
+        authorId: c.authorId,
+        body: c.body,
+        createdAt: c.createdAt,
       })),
       position: card.position,
       priority: (card.priority ?? null) as CardPriorityValue | null,
@@ -102,6 +116,7 @@ export default async function BoardPage({
 
       <BoardView
         boardId={board.id}
+        boardName={board.name}
         initialLists={initialLists}
         members={members}
         currentUserId={user.id}

@@ -267,6 +267,117 @@ export async function setCardLabels(
   revalidatePath(`/app/boards/${boardId}`);
 }
 
+/* ---------- Checklist items ---------- */
+
+const checklistTextSchema = z.string().trim().min(1).max(300);
+
+export async function addChecklistItem(
+  boardId: string,
+  cardId: string,
+  formData: FormData,
+) {
+  const { profileId } = await assertBoardAccess(boardId);
+  const parsed = checklistTextSchema.safeParse(formData.get("text"));
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const last = await prisma.cardChecklistItem.findFirst({
+    where: { cardId },
+    orderBy: { position: "desc" },
+    select: { position: true },
+  });
+
+  await prisma.cardChecklistItem.create({
+    data: {
+      cardId,
+      text: parsed.data,
+      position: (last?.position ?? 0) + 1000,
+      createdById: profileId,
+    },
+  });
+
+  revalidatePath(`/app/boards/${boardId}`);
+}
+
+export async function toggleChecklistItem(
+  boardId: string,
+  itemId: string,
+  done: boolean,
+) {
+  const { profileId } = await assertBoardAccess(boardId);
+  await prisma.cardChecklistItem.update({
+    where: { id: itemId },
+    data: {
+      done,
+      doneAt: done ? new Date() : null,
+      doneById: done ? profileId : null,
+    },
+  });
+  revalidatePath(`/app/boards/${boardId}`);
+}
+
+export async function updateChecklistItemText(
+  boardId: string,
+  itemId: string,
+  formData: FormData,
+) {
+  await assertBoardAccess(boardId);
+  const parsed = checklistTextSchema.safeParse(formData.get("text"));
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  await prisma.cardChecklistItem.update({
+    where: { id: itemId },
+    data: { text: parsed.data },
+  });
+  revalidatePath(`/app/boards/${boardId}`);
+}
+
+export async function deleteChecklistItem(boardId: string, itemId: string) {
+  await assertBoardAccess(boardId);
+  await prisma.cardChecklistItem.delete({ where: { id: itemId } });
+  revalidatePath(`/app/boards/${boardId}`);
+}
+
+/* ---------- Comments ---------- */
+
+const commentSchema = z.string().trim().min(1).max(2000);
+
+export async function addComment(
+  boardId: string,
+  cardId: string,
+  formData: FormData,
+) {
+  const { profileId } = await assertBoardAccess(boardId);
+  const parsed = commentSchema.safeParse(formData.get("body"));
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  await prisma.comment.create({
+    data: {
+      cardId,
+      authorId: profileId,
+      body: parsed.data,
+    },
+  });
+  revalidatePath(`/app/boards/${boardId}`);
+}
+
+export async function deleteComment(boardId: string, commentId: string) {
+  const { profileId, role } = await assertBoardAccess(boardId);
+  const comment = await prisma.comment.findUnique({
+    where: { id: commentId },
+    select: { authorId: true },
+  });
+  if (!comment) return { error: "Comment not found" };
+
+  const canDelete =
+    comment.authorId === profileId || role === "owner" || role === "admin";
+  if (!canDelete) return { error: "You can only delete your own comments" };
+
+  await prisma.comment.delete({ where: { id: commentId } });
+  revalidatePath(`/app/boards/${boardId}`);
+}
+
+/* ---------- Labels ---------- */
+
 const createLabelSchema = z.object({
   name: z.string().trim().min(1).max(30),
   color: z

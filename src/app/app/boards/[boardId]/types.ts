@@ -6,6 +6,20 @@ export type LabelData = {
   color: string; // hex, e.g. "#3B82F6"
 };
 
+export type ChecklistItemData = {
+  id: string;
+  text: string;
+  done: boolean;
+  position: number;
+};
+
+export type CommentData = {
+  id: string;
+  authorId: string;
+  body: string;
+  createdAt: Date;
+};
+
 export type CardData = {
   id: string;
   key: string;
@@ -13,6 +27,8 @@ export type CardData = {
   description: string | null;
   component: string | null; // legacy, kept for backfill fallback
   labels: LabelData[];
+  checklist: ChecklistItemData[];
+  comments: CommentData[];
   position: number;
   priority: CardPriorityValue | null;
   startDate: Date | null;

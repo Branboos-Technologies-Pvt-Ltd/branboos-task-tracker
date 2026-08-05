@@ -190,7 +190,7 @@ export default async function AppHome({
           {myTasks.length === 0 ? (
             <EmptyLine>Nothing assigned to you right now.</EmptyLine>
           ) : (
-            <div className="flex flex-col">
+            <div className="-mx-2 flex flex-col gap-0.5">
               {myTasks.map((card) => {
                 const overdue =
                   card.dueDate && isPast(card.dueDate) && !isToday(card.dueDate);
@@ -220,7 +220,7 @@ export default async function AppHome({
                   <Link
                     key={card.id}
                     href={`/app/boards/${card.list.boardId}`}
-                    className="flex items-center gap-3 border-b border-[#F1F0EC] py-3 last:border-b-0 hover:bg-[#FAFAF8]"
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-[#F3F2EE]"
                   >
                     <span
                       className="h-2 w-2 shrink-0 rounded-full"
@@ -251,7 +251,7 @@ export default async function AppHome({
           {activityRows.length === 0 ? (
             <EmptyLine>Nothing to show yet.</EmptyLine>
           ) : (
-            <div className="flex flex-col">
+            <div className="-mx-2 flex flex-col gap-0.5">
               {activityRows.map((a) => (
                 <ActivityLine key={a.id} row={a} />
               ))}
@@ -430,16 +430,11 @@ function EmptyLine({ children }: { children: React.ReactNode }) {
 
 function ActivityLine({ row }: { row: ActivityRow }) {
   const swatch = avatarSwatch(row.actorEmail ?? row.id);
-  const Wrapper = row.boardId ? Link : "div";
-  const wrapperProps = row.boardId
-    ? { href: `/app/boards/${row.boardId}` as const }
-    : {};
+  const commonClasses =
+    "flex items-start gap-2.5 rounded-lg px-3 py-2 transition-colors hover:bg-[#F3F2EE]";
 
-  return (
-    <Wrapper
-      {...(wrapperProps as { href: `/app/boards/${string}` })}
-      className="flex items-start gap-2.5 border-b border-[#F1F0EC] py-2.5 last:border-b-0 hover:bg-[#FAFAF8]"
-    >
+  const content = (
+    <>
       <span
         className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
         style={{ backgroundColor: swatch.bg, color: swatch.text }}
@@ -454,6 +449,15 @@ function ActivityLine({ row }: { row: ActivityRow }) {
           {formatDistanceToNow(row.createdAt, { addSuffix: true })}
         </div>
       </div>
-    </Wrapper>
+    </>
   );
+
+  if (row.boardId) {
+    return (
+      <Link href={`/app/boards/${row.boardId}`} className={commonClasses}>
+        {content}
+      </Link>
+    );
+  }
+  return <div className={commonClasses}>{content}</div>;
 }

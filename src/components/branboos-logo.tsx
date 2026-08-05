@@ -62,6 +62,8 @@ export function BranBoosLockup({
 
 // Full black-text logo (icon + BranBoos wordmark + gradient bar + tagline) as
 // a single PNG — good for the auth screen where we want the polished look.
+// Prefer `className` (e.g. `h-11 sm:h-[60px] w-auto`) when you want responsive
+// sizing; the `height` prop only sets Image's intrinsic ratio.
 export function BranBoosBlackLogo({
   height = 60,
   className,
@@ -75,8 +77,8 @@ export function BranBoosBlackLogo({
       alt="BranBoos"
       width={height * 5}
       height={height}
-      className={className}
-      style={{ height, width: "auto" }}
+      className={className ?? "w-auto"}
+      style={className ? undefined : { height, width: "auto" }}
       priority
     />
   );

@@ -28,36 +28,51 @@ export default async function Home({
 
   return (
     <div className="flex min-h-screen flex-col bg-[#FAFAF8] text-[#1A1A18]">
-      {/* Slimmer header (64px) with the real logo. */}
-      <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-[#E7E5E0] bg-white px-6 md:px-12">
+      {/* Header — icon + short wordmark on mobile, full lockup on desktop. */}
+      <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-[#E7E5E0] bg-white px-4 md:px-12">
         <Link href="/" className="flex items-center" aria-label="BranBoos home">
+          {/* Mobile: rocket icon + tight BranBoos text — fits comfortably in ~140px */}
+          <span className="flex items-center gap-2 md:hidden">
+            <Image
+              src="/brand/branboos-icon.png"
+              alt=""
+              width={32}
+              height={32}
+              className="h-8 w-auto"
+              priority
+            />
+            <span className="font-heading text-base font-extrabold leading-none">
+              BranBoos
+            </span>
+          </span>
+          {/* Desktop: full logo with the "Technologies Pvt. Ltd." tagline */}
           <Image
             src="/brand/branboos-logo-black.png"
             alt="BranBoos Technologies Pvt. Ltd."
             width={220}
-            height={44}
-            className="h-9 w-auto md:h-10"
+            height={40}
+            className="hidden h-10 w-auto md:block"
             priority
           />
         </Link>
-        <div className="flex items-center gap-3 md:gap-5">
+
+        <div className="flex items-center gap-2 md:gap-5">
           <Link
             href="/login"
-            className="text-sm font-semibold text-[#1A1A18] hover:text-[#3F3F3A]"
+            className="hidden text-sm font-semibold text-[#1A1A18] hover:text-[#3F3F3A] sm:inline"
           >
             Sign in
           </Link>
           <Link
             href="/login?mode=signup"
-            className="rounded-[9px] bg-gradient-to-r from-[#F4511E] via-[#FDD835] to-[#00ACC1] px-4 py-2 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-95"
+            className="rounded-[9px] bg-gradient-to-r from-[#F4511E] via-[#FDD835] to-[#00ACC1] px-3.5 py-2 text-[13px] font-bold text-white shadow-sm transition-opacity hover:opacity-95 md:px-5 md:py-2.5 md:text-sm"
           >
             Get started
           </Link>
         </div>
       </header>
 
-      {/* Compact hero — target: top row of feature cards visible above the fold
-          on a ~720px viewport. */}
+      {/* Compact hero — top row of feature cards visible above the fold on 720px+. */}
       <section className="mx-auto max-w-[720px] flex-shrink-0 px-6 pt-6 pb-6 text-center md:pt-8 md:pb-7">
         <div className="mb-2 text-[11px] font-bold tracking-[2px] text-[#9B9B94] uppercase">
           BranBoos Technologies
@@ -72,7 +87,7 @@ export default async function Home({
           A simple shared workspace where the whole team sees what needs doing,
           who&rsquo;s on it, and what&rsquo;s already done.
         </p>
-        <div className="mt-5 flex items-center justify-center gap-4">
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-3 md:gap-4">
           <Link
             href="/login"
             className="rounded-[10px] bg-gradient-to-r from-[#F4511E] via-[#FDD835] to-[#00ACC1] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-95"
@@ -88,8 +103,7 @@ export default async function Home({
         </div>
       </section>
 
-      {/* Feature grid — 6 cards (3x2 desktop, 2x3 tablet, 1-col mobile).
-          Compact padding so a full row fits above the fold on standard laptops. */}
+      {/* Feature grid — 6 cards (3x2 desktop, 2x3 tablet, 1-col mobile). */}
       <section className="mx-auto w-full max-w-[1100px] flex-1 px-6 pb-8">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-3">
           <FeatureCard

@@ -51,7 +51,7 @@ export function ResetPasswordForm() {
       <Button
         type="submit"
         disabled={pending}
-        className="w-full bg-gradient-to-r from-red-500 via-orange-500 via-lime-500 to-blue-500 font-semibold text-white shadow-sm hover:opacity-95 disabled:opacity-70"
+        className="btn-brand-gradient w-full rounded-md font-semibold shadow-sm disabled:opacity-70"
       >
         {pending ? "Saving..." : "Save password"}
       </Button>

@@ -65,7 +65,7 @@ export default async function Home({
           </Link>
           <Link
             href="/login?mode=signup"
-            className="rounded-[9px] bg-gradient-to-r from-[#F4511E] via-[#FDD835] to-[#00ACC1] px-3.5 py-2 text-[13px] font-bold text-white shadow-sm transition-opacity hover:opacity-95 md:px-5 md:py-2.5 md:text-sm"
+            className="btn-brand-gradient rounded-[9px] px-3.5 py-2 text-[13px] font-bold shadow-sm md:px-5 md:py-2.5 md:text-sm"
           >
             Get started
           </Link>
@@ -90,7 +90,7 @@ export default async function Home({
         <div className="mt-5 flex flex-wrap items-center justify-center gap-3 md:gap-4">
           <Link
             href="/login"
-            className="rounded-[10px] bg-gradient-to-r from-[#F4511E] via-[#FDD835] to-[#00ACC1] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-95"
+            className="btn-brand-gradient rounded-[10px] px-6 py-2.5 text-sm font-bold shadow-sm"
           >
             Sign in
           </Link>

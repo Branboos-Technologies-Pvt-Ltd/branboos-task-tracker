@@ -381,7 +381,7 @@ function PrimaryButton({
     <button
       type="submit"
       disabled={disabled}
-      className="rounded-[10px] bg-gradient-to-r from-[#F4511E] via-[#FDD835] to-[#00ACC1] py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-95 disabled:opacity-60"
+      className="btn-brand-gradient rounded-[10px] py-3 text-sm font-bold shadow-sm disabled:opacity-60"
     >
       {children}
     </button>

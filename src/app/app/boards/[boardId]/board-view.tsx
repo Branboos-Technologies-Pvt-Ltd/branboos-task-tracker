@@ -20,9 +20,11 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { TrashIcon } from "lucide-react";
 import type { Member } from "@/lib/members";
 import { avatarSwatch, memberInitials } from "@/lib/members";
-import { moveCard } from "./actions";
+import { canDeleteList, type WorkspaceRole } from "@/lib/permissions";
+import { deleteList, moveCard } from "./actions";
 import { AddCardForm } from "./add-card-form";
 import { AddListForm } from "./add-list-form";
 import { CardDialog } from "./card-dialog";
@@ -35,8 +37,8 @@ import {
 import {
   PRIORITY_STYLES,
   columnDot,
-  componentColor,
   type CardData,
+  type LabelData,
   type ListData,
 } from "./types";
 
@@ -45,11 +47,15 @@ export function BoardView({
   initialLists,
   members,
   currentUserId,
+  currentUserRole,
+  availableLabels,
 }: {
   boardId: string;
   initialLists: ListData[];
   members: Member[];
   currentUserId: string;
+  currentUserRole: WorkspaceRole;
+  availableLabels: LabelData[];
 }) {
   const [lists, setLists] = useState<ListData[]>(initialLists);
   const [activeCard, setActiveCard] = useState<CardData | null>(null);
@@ -189,6 +195,8 @@ export function BoardView({
                 totalCards={list.totalCards}
                 membersById={membersById}
                 onCardClick={setOpenCardId}
+                currentUserId={currentUserId}
+                currentUserRole={currentUserRole}
               />
             ))}
             <AddListForm boardId={boardId} />
@@ -216,6 +224,7 @@ export function BoardView({
           boardId={boardId}
           card={openCard}
           members={members}
+          availableLabels={availableLabels}
           open={true}
           onOpenChange={(open) => {
             if (!open) setOpenCardId(null);
@@ -232,24 +241,49 @@ function ListColumn({
   totalCards,
   membersById,
   onCardClick,
+  currentUserId,
+  currentUserRole,
 }: {
   boardId: string;
-  list: ListData;
+  list: ListData & { totalCards: number };
   totalCards: number;
   membersById: Map<string, Member>;
   onCardClick: (id: string) => void;
+  currentUserId: string;
+  currentUserRole: WorkspaceRole;
 }) {
   const cardIds = list.cards.map((c) => c.id);
   const { setNodeRef, isOver } = useDroppable({ id: list.id });
   const dot = columnDot(list.name);
   const hiddenByFilter = totalCards - list.cards.length;
 
+  const canDelete = canDeleteList({
+    role: currentUserRole,
+    listCreatedById: list.createdById,
+    currentUserId,
+    cardCount: list.cardCount,
+  });
+
+  const [deletePending, startDelete] = useTransition();
+
+  function handleDelete() {
+    const message =
+      list.cardCount > 0
+        ? `Delete "${list.name}" and its ${list.cardCount} card${list.cardCount === 1 ? "" : "s"}? This cannot be undone.`
+        : `Delete "${list.name}"?`;
+    if (!confirm(message)) return;
+    startDelete(async () => {
+      const result = await deleteList(boardId, list.id);
+      if (result && "error" in result) alert(result.error);
+    });
+  }
+
   return (
     <SortableContext id={list.id} items={cardIds} strategy={verticalListSortingStrategy}>
       <div
         ref={setNodeRef}
         data-list-id={list.id}
-        className={`flex w-[300px] shrink-0 flex-col rounded-2xl bg-[#F3F2EE] p-3.5 transition-colors ${
+        className={`group/list flex w-[300px] shrink-0 flex-col rounded-2xl bg-[#F3F2EE] p-3.5 transition-colors ${
           isOver ? "bg-[#E7E5E0]" : ""
         }`}
       >
@@ -267,6 +301,18 @@ function ListColumn({
               <span className="ml-0.5 opacity-60">/{totalCards}</span>
             )}
           </span>
+          {canDelete && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deletePending}
+              title="Delete this list"
+              aria-label="Delete list"
+              className="ml-auto rounded-md p-1 text-[#9B9B94] opacity-0 transition-opacity hover:bg-white hover:text-[#DC2626] focus:opacity-100 group-hover/list:opacity-100 disabled:opacity-40"
+            >
+              <TrashIcon className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
         <div className="flex flex-col gap-2.5">
           {list.cards.map((card) => (
@@ -340,11 +386,17 @@ function CardBody({
   elevated?: boolean;
 }) {
   const priorityStyle = card.priority ? PRIORITY_STYLES[card.priority] : null;
-  const componentStyle = card.component ? componentColor(card.component) : null;
   const due = card.dueDate;
   const overdue = due && isPast(due) && !isToday(due);
   const dueSoon = due && !overdue && differenceInCalendarDays(due, new Date()) <= 2;
   const dueColor = overdue ? "#DC2626" : dueSoon ? "#B45309" : "#6B6B66";
+
+  // Support the transition: prefer the labels array, fall back to legacy component.
+  const labelsToShow: { name: string; color: string }[] = card.labels.length
+    ? card.labels.map((l) => ({ name: l.name, color: l.color }))
+    : card.component
+    ? [{ name: card.component, color: "#64748B" }]
+    : [];
 
   return (
     <div
@@ -352,24 +404,18 @@ function CardBody({
         elevated ? "shadow-lg ring-1 ring-black/10" : "hover:shadow-sm"
       }`}
     >
-      {/* Labels row */}
-      {componentStyle && card.component && (
-        <div className="mb-1.5 flex flex-wrap gap-1">
-          <span
-            className="inline-block rounded-full px-2 py-0.5 text-[10px] font-bold"
-            style={{ backgroundColor: componentStyle.bg, color: componentStyle.color }}
-          >
-            {card.component}
-          </span>
+      {labelsToShow.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-1">
+          {labelsToShow.map((lb) => (
+            <LabelPill key={lb.name} name={lb.name} color={lb.color} />
+          ))}
         </div>
       )}
 
-      {/* Title */}
       <div className="mb-2.5 text-sm font-semibold leading-snug text-[#1A1A18]">
         {card.title}
       </div>
 
-      {/* Meta row */}
       <div className="mb-2.5 flex flex-wrap items-center gap-2">
         {priorityStyle && (
           <span
@@ -389,7 +435,6 @@ function CardBody({
         </span>
       </div>
 
-      {/* Assignee — right aligned */}
       <div className="flex justify-end">
         {assignee ? (
           <AssigneeAvatar assignee={assignee} />
@@ -400,6 +445,17 @@ function CardBody({
         )}
       </div>
     </div>
+  );
+}
+
+function LabelPill({ name, color }: { name: string; color: string }) {
+  return (
+    <span
+      className="inline-block rounded-full px-2 py-0.5 text-[10px] font-bold"
+      style={{ backgroundColor: `${color}20`, color }}
+    >
+      {name}
+    </span>
   );
 }
 

@@ -29,6 +29,7 @@ model Profile {
 
   memberships   WorkspaceMember[]
   createdBoards Board[]           @relation("BoardCreatedBy")
+  createdLists  List[]            @relation("ListCreatedBy")
   assignedCards Card[]            @relation("CardAssignee")
   authoredCards Card[]            @relation("CardCreatedBy")
   comments      Comment[]
@@ -55,6 +56,7 @@ model Workspace {
   members  WorkspaceMember[]
   boards   Board[]
   cards    Card[]
+  labels   Label[]
   sequence WorkspaceCardSequence?
 
   @@map("workspaces")
@@ -102,17 +104,20 @@ model Board {
 }
 
 model List {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  boardId   String   @map("board_id") @db.Uuid
-  name      String
-  position  Float
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  boardId     String   @map("board_id") @db.Uuid
+  name        String
+  position    Float
+  createdById String?  @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
-  board Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  cards Card[]
+  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  createdBy Profile? @relation("ListCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  cards     Card[]
 
   @@index([boardId, position])
+  @@index([createdById])
   @@map("lists")
 }
 
@@ -143,16 +148,47 @@ model Card {
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  list      List      @relation(fields: [listId], references: [id], onDelete: Cascade)
-  assignee  Profile?  @relation("CardAssignee", fields: [assigneeId], references: [id])
-  createdBy Profile   @relation("CardCreatedBy", fields: [createdById], references: [id])
+  workspace Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  list      List        @relation(fields: [listId], references: [id], onDelete: Cascade)
+  assignee  Profile?    @relation("CardAssignee", fields: [assigneeId], references: [id])
+  createdBy Profile     @relation("CardCreatedBy", fields: [createdById], references: [id])
   comments  Comment[]
+  labels    CardLabel[]
 
   @@unique([workspaceId, number])
   @@index([listId, position])
   @@index([assigneeId])
   @@map("cards")
+}
+
+// Workspace-scoped labels. Replace the single `component` string on Card
+// (kept for backward compat, backfilled at migration).
+model Label {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
+  name        String
+  color       String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  cards     CardLabel[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+  @@map("labels")
+}
+
+model CardLabel {
+  cardId  String @map("card_id") @db.Uuid
+  labelId String @map("label_id") @db.Uuid
+
+  card  Card  @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  label Label @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([cardId, labelId])
+  @@index([labelId])
+  @@map("card_labels")
 }
 
 model Comment {

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireProfile } from "@/lib/auth";
 import { listWorkspaceMembers } from "@/lib/members.server";
 import { boardDot } from "@/lib/members";
+import type { WorkspaceRole } from "@/lib/permissions";
 import { BoardView } from "./board-view";
 import type { CardPriorityValue } from "./types";
 
@@ -12,9 +13,9 @@ export default async function BoardPage({
   params: Promise<{ boardId: string }>;
 }) {
   const { boardId } = await params;
-  const { workspace, user } = await requireProfile();
+  const { workspace, user, role } = await requireProfile();
 
-  const [board, members] = await Promise.all([
+  const [board, members, workspaceLabels] = await Promise.all([
     prisma.board.findFirst({
       where: { id: boardId, workspaceId: workspace.id },
       include: {
@@ -24,12 +25,19 @@ export default async function BoardPage({
             cards: {
               orderBy: { position: "asc" },
               where: { archivedAt: null },
+              include: {
+                labels: { include: { label: true } },
+              },
             },
           },
         },
       },
     }),
     listWorkspaceMembers(workspace.id),
+    prisma.label.findMany({
+      where: { workspaceId: workspace.id },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   if (!board) notFound();
@@ -38,12 +46,19 @@ export default async function BoardPage({
     id: list.id,
     name: list.name,
     position: list.position,
+    createdById: list.createdById,
+    cardCount: list.cards.length,
     cards: list.cards.map((card) => ({
       id: card.id,
       key: `${workspace.prefix}-${card.number}`,
       title: card.title,
       description: card.description,
       component: card.component,
+      labels: card.labels.map((cl) => ({
+        id: cl.label.id,
+        name: cl.label.name,
+        color: cl.label.color,
+      })),
       position: card.position,
       priority: (card.priority ?? null) as CardPriorityValue | null,
       startDate: card.startDate,
@@ -55,6 +70,12 @@ export default async function BoardPage({
 
   const totalCards = board.lists.reduce((sum, l) => sum + l.cards.length, 0);
   const dot = boardDot(board.name);
+
+  const availableLabels = workspaceLabels.map((l) => ({
+    id: l.id,
+    name: l.name,
+    color: l.color,
+  }));
 
   return (
     <div className="flex flex-col gap-5">
@@ -84,6 +105,8 @@ export default async function BoardPage({
         initialLists={initialLists}
         members={members}
         currentUserId={user.id}
+        currentUserRole={role as WorkspaceRole}
+        availableLabels={availableLabels}
       />
     </div>
   );

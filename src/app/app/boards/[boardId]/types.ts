@@ -1,11 +1,18 @@
 export type CardPriorityValue = "low" | "medium" | "high" | "urgent";
 
+export type LabelData = {
+  id: string;
+  name: string;
+  color: string; // hex, e.g. "#3B82F6"
+};
+
 export type CardData = {
   id: string;
   key: string;
   title: string;
   description: string | null;
-  component: string | null;
+  component: string | null; // legacy, kept for backfill fallback
+  labels: LabelData[];
   position: number;
   priority: CardPriorityValue | null;
   startDate: Date | null;
@@ -18,6 +25,8 @@ export type ListData = {
   id: string;
   name: string;
   position: number;
+  createdById: string | null;
+  cardCount: number;
   cards: CardData[];
 };
 

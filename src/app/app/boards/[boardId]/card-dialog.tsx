@@ -16,7 +16,8 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Member } from "@/lib/members";
 import { memberDisplayName } from "@/lib/members";
 import { deleteCard, updateCard } from "./actions";
-import type { CardData } from "./types";
+import { LabelPicker } from "./label-picker";
+import type { CardData, LabelData } from "./types";
 
 function toDateInput(d: Date | null): string {
   if (!d) return "";
@@ -27,18 +28,21 @@ export function CardDialog({
   boardId,
   card,
   members,
+  availableLabels,
   open,
   onOpenChange,
 }: {
   boardId: string;
   card: CardData;
   members: Member[];
+  availableLabels: LabelData[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   const [pending, startTransition] = useTransition();
   const [deleting, startDelete] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [selectedLabels, setSelectedLabels] = useState<LabelData[]>(card.labels);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -86,17 +90,18 @@ export function CardDialog({
             />
           </div>
 
+          <div className="flex flex-col gap-1.5">
+            <Label>Labels</Label>
+            <LabelPicker
+              boardId={boardId}
+              cardId={card.id}
+              availableLabels={availableLabels}
+              selectedLabels={selectedLabels}
+              onChange={setSelectedLabels}
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="component">Component</Label>
-              <Input
-                id="component"
-                name="component"
-                defaultValue={card.component ?? ""}
-                placeholder="e.g. Frontend, Sales"
-                disabled={pending}
-              />
-            </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="priority">Priority</Label>
               <select
@@ -113,24 +118,23 @@ export function CardDialog({
                 <option value="urgent">Urgent</option>
               </select>
             </div>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="assigneeId">Assignee</Label>
-            <select
-              id="assigneeId"
-              name="assigneeId"
-              defaultValue={card.assigneeId ?? ""}
-              disabled={pending}
-              className="h-8 rounded-md border border-input bg-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
-            >
-              <option value="">Unassigned</option>
-              {members.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {memberDisplayName(m)} — {m.email}
-                </option>
-              ))}
-            </select>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="assigneeId">Assignee</Label>
+              <select
+                id="assigneeId"
+                name="assigneeId"
+                defaultValue={card.assigneeId ?? ""}
+                disabled={pending}
+                className="h-8 rounded-md border border-input bg-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+              >
+                <option value="">Unassigned</option>
+                {members.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {memberDisplayName(m)}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

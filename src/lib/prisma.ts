@@ -10,6 +10,13 @@ function createPrismaClient(): PrismaClient {
       "DATABASE_URL is not set. Add it to .env.local (local) or your host's environment variables (Netlify / Vercel / etc.).",
     );
   }
+  // TEMP DIAGNOSTIC: log which DB host we're connecting to. Remove after redirect-loop fix.
+  try {
+    const u = new URL(connectionString);
+    console.log("[PRISMA] connecting to", u.host, u.pathname);
+  } catch {
+    console.log("[PRISMA] connecting (URL parse failed)");
+  }
   const adapter = new PrismaPg({ connectionString });
   return new PrismaClient({ adapter });
 }

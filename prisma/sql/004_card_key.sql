@@ -62,12 +62,22 @@ ALTER TABLE public.cards
   ALTER COLUMN workspace_id SET NOT NULL,
   ALTER COLUMN number SET NOT NULL;
 
-ALTER TABLE public.cards
-  ADD CONSTRAINT cards_workspace_id_fkey
-  FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE
-  NOT VALID;
-
-ALTER TABLE public.cards VALIDATE CONSTRAINT cards_workspace_id_fkey;
+-- Only add the FK if it doesn't already exist. On freshly-bootstrapped databases
+-- `prisma db push` will have created this constraint from schema.prisma; on
+-- older databases the constraint is missing until this migration adds it.
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'cards_workspace_id_fkey'
+      AND table_name = 'cards'
+  ) THEN
+    ALTER TABLE public.cards
+      ADD CONSTRAINT cards_workspace_id_fkey
+      FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE
+      NOT VALID;
+    ALTER TABLE public.cards VALIDATE CONSTRAINT cards_workspace_id_fkey;
+  END IF;
+END $$;
 
 CREATE UNIQUE INDEX IF NOT EXISTS cards_workspace_id_number_key
   ON public.cards (workspace_id, number);

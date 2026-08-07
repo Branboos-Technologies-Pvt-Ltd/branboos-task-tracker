@@ -4,15 +4,22 @@
 --
 -- Safe to re-run: uses ON CONFLICT DO NOTHING and CREATE OR REPLACE.
 
-INSERT INTO public.workspaces (id, name, slug, created_at, updated_at)
+-- `prefix` is included so this works on freshly-bootstrapped databases where
+-- `prisma db push` has already created workspaces.prefix as NOT NULL from the
+-- current schema. On original databases where `prefix` was added later by
+-- migration 004, this column value simply matches what 004 would backfill.
+INSERT INTO public.workspaces (id, name, slug, prefix, created_at, updated_at)
 VALUES (
   '00000000-0000-0000-0000-00000000b005',  -- fixed UUID so we can reference it in the trigger
-  'Branboos',
+  'BranBoos',
   'branboos',
+  'BRAN',
   NOW(),
   NOW()
 )
-ON CONFLICT (slug) DO NOTHING;
+ON CONFLICT (slug) DO UPDATE
+  SET name = EXCLUDED.name,
+      prefix = EXCLUDED.prefix;
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
